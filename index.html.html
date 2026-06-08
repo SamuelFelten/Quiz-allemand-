@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Allemand 1">
+<meta name="theme-color" content="#0f0f13">
+<title>Quiz Allemand 1</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f13;
+    --surface: #1a1a24;
+    --card: #22222f;
+    --border: #2e2e42;
+    --accent: #7c6af7;
+    --accent2: #f7a26a;
+    --green: #5bc98a;
+    --red: #f76a6a;
+    --text: #e8e8f0;
+    --muted: #7a7a98;
+    --serif: 'DM Serif Display', serif;
+    --sans: 'DM Sans', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  header {
+    width: 100%;
+    padding: 14px 20px;
+    padding-top: max(14px, env(safe-area-inset-top));
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky; top: 0; z-index: 10;
+  }
+  header h1 { font-family: var(--serif); font-size: 1.3rem; color: var(--text); letter-spacing: 0.02em; }
+  header h1 span { color: var(--accent); font-style: italic; }
+  .nav-btns { display: flex; gap: 6px; }
+  .nav-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 7px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: var(--sans);
+    font-size: 0.82rem;
+    font-weight: 500;
+    transition: all 0.18s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .nav-btn:hover, .nav-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .view { display: none; width: 100%; max-width: 680px; padding: 24px 16px; }
+  .view.active { display: block; }
+
+  /* QUIZ */
+  .filters { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 20px; }
+  .filter-chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 5px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.79rem;
+    font-weight: 500;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .filter-chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .progress-bar-wrap { background: var(--surface); border-radius: 4px; height: 5px; margin-bottom: 22px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 4px; transition: width 0.4s ease; }
+
+  .question-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px 28px 24px;
+    margin-bottom: 20px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .question-card::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 160px; height: 160px;
+    background: radial-gradient(circle, rgba(124,106,247,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .q-label { font-size: 0.73rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
+  .q-word { font-family: var(--serif); font-size: 2rem; color: var(--text); line-height: 1.25; margin-bottom: 8px; }
+  .q-type-badge {
+    display: inline-block;
+    background: rgba(124,106,247,0.15);
+    color: var(--accent);
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+  .q-chapter { font-size: 0.73rem; color: var(--muted); }
+
+  .choices-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .choice-btn {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    color: var(--text);
+    padding: 14px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-family: var(--sans);
+    font-size: 0.88rem;
+    font-weight: 400;
+    text-align: center;
+    transition: all 0.15s;
+    line-height: 1.35;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .choice-btn:active:not(:disabled) { transform: scale(0.97); }
+  .choice-btn:hover:not(:disabled) { border-color: var(--accent); background: rgba(124,106,247,0.1); }
+  .choice-btn.correct { background: rgba(91,201,138,0.15); border-color: var(--green); color: var(--green); }
+  .choice-btn.wrong { background: rgba(247,106,106,0.15); border-color: var(--red); color: var(--red); }
+  .choice-btn:disabled { cursor: default; }
+
+  .feedback-row { text-align: center; font-size: 0.87rem; min-height: 26px; color: var(--muted); margin-bottom: 10px; }
+  .feedback-row.correct-msg { color: var(--green); font-weight: 600; }
+  .feedback-row.wrong-msg { color: var(--red); }
+
+  .next-btn {
+    width: 100%;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 14px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-family: var(--sans);
+    font-size: 1rem;
+    font-weight: 600;
+    display: none;
+    transition: opacity 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .next-btn:hover { opacity: 0.87; }
+
+  .stats-row { display: flex; gap: 10px; margin-bottom: 20px; }
+  .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 8px; flex: 1; text-align: center; }
+  .stat-pill .val { font-size: 1.3rem; font-weight: 600; color: var(--text); }
+  .stat-pill .lbl { font-size: 0.67rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
+
+  /* LIST */
+  .list-controls { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .search-input {
+    flex: 1; min-width: 140px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 14px;
+    border-radius: 10px;
+    font-family: var(--sans);
+    font-size: 0.88rem;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--muted); }
+  .list-filter-select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 10px;
+    border-radius: 10px;
+    font-family: var(--sans);
+    font-size: 0.82rem;
+    outline: none;
+    cursor: pointer;
+  }
+  .word-count { color: var(--muted); font-size: 0.8rem; margin-bottom: 10px; }
+
+  .table-wrap { max-height: 62vh; overflow-y: auto; border: 1px solid var(--border); border-radius: 12px; }
+  .word-table { width: 100%; border-collapse: collapse; }
+  .word-table th {
+    text-align: left;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky; top: 0;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .word-table th:hover { color: var(--accent); }
+  .sort-arrow { margin-left: 4px; opacity: 0.5; }
+  .sort-arrow.active { opacity: 1; color: var(--accent); }
+  .word-table td { padding: 9px 10px; font-size: 0.86rem; border-bottom: 1px solid rgba(46,46,66,0.5); vertical-align: top; }
+  .word-table tr:hover td { background: rgba(124,106,247,0.05); }
+  .german-cell { font-weight: 500; color: var(--text); }
+  .french-cell { color: var(--muted); }
+  .type-cell { font-size: 0.7rem; color: var(--accent); font-weight: 600; }
+  .chap-cell { color: var(--muted); font-size: 0.76rem; text-align: center; }
+  .mastery-cell { font-size: 0.76rem; white-space: nowrap; }
+  .mastery-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+  .mastery-0 { background: var(--muted); }
+  .mastery-1 { background: var(--accent2); }
+  .mastery-2 { background: var(--green); }
+
+  .install-banner {
+    background: rgba(124,106,247,0.12);
+    border: 1px solid rgba(124,106,247,0.3);
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    font-size: 0.82rem;
+    color: var(--text);
+    display: none;
+  }
+  .install-banner strong { color: var(--accent); }
+  .install-close { float: right; cursor: pointer; color: var(--muted); font-size: 1rem; line-height: 1; }
+
+  @media (max-width: 480px) {
+    .choices-grid { grid-template-columns: 1fr; }
+    .q-word { font-size: 1.6rem; }
+    .word-table th:nth-child(4), .word-table td:nth-child(4) { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Quiz <span>Allemand</span> 1</h1>
+  <div class="nav-btns">
+    <button class="nav-btn active" onclick="showView('quiz', this)">Quiz</button>
+    <button class="nav-btn" onclick="showView('list', this)">Liste</button>
+  </div>
+</header>
+
+<!-- QUIZ VIEW -->
+<div class="view active" id="view-quiz">
+  <div class="install-banner" id="install-banner">
+    <span class="install-close" onclick="this.parentElement.style.display='none'">✕</span>
+    <strong>💡 Installer sur iPad :</strong> appuie sur <strong>⎙ Partager</strong> dans Safari, puis <strong>« Sur l'écran d'accueil »</strong>. Ta progression sera sauvegardée !
+  </div>
+
+  <div class="filters" id="chapter-filters"></div>
+
+  <div class="stats-row">
+    <div class="stat-pill"><div class="val" id="stat-correct">0</div><div class="lbl">Corrects</div></div>
+    <div class="stat-pill"><div class="val" id="stat-wrong">0</div><div class="lbl">Erreurs</div></div>
+    <div class="stat-pill"><div class="val" id="stat-mastered">0</div><div class="lbl">Maîtrisés</div></div>
+    <div class="stat-pill"><div class="val" id="stat-streak">0</div><div class="lbl">Série 🔥</div></div>
+  </div>
+
+  <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-bar" style="width:0%"></div></div>
+
+  <div class="question-card">
+    <div class="q-label" id="q-label">Traduire en allemand</div>
+    <div class="q-word" id="q-word">...</div>
+    <div><span class="q-type-badge" id="q-type"></span> <span class="q-chapter" id="q-chapter"></span></div>
+  </div>
+
+  <div class="choices-grid" id="choices-grid"></div>
+  <div class="feedback-row" id="feedback"></div>
+  <button class="next-btn" id="next-btn" onclick="nextQuestion()">Question suivante →</button>
+</div>
+
+<!-- LIST VIEW -->
+<div class="view" id="view-list">
+  <div class="list-controls">
+    <input class="search-input" type="text" placeholder="Rechercher..." id="list-search" oninput="renderList()">
+    <select class="list-filter-select" id="list-chap" onchange="renderList()">
+      <option value="all">Tous chapitres</option>
+      <option value="1">Chapitre 1</option>
+      <option value="2">Chapitre 2</option>
+      <option value="3">Chapitre 3</option>
+      <option value="4">Chapitre 4</option>
+      <option value="5">Chapitre 5</option>
+    </select>
+    <select class="list-filter-select" id="list-type" onchange="renderList()">
+      <option value="all">Tous types</option>
+      <option value="S">Noms (S)</option>
+      <option value="V">Verbes (V)</option>
+      <option value="A">Adjectifs (A)</option>
+      <option value="KW">Petits mots</option>
+      <option value="Aus">Expressions</option>
+    </select>
+    <select class="list-filter-select" id="list-mastery" onchange="renderList()">
+      <option value="all">Toute maîtrise</option>
+      <option value="0">Nouveaux</option>
+      <option value="1">Vus</option>
+      <option value="2">Maîtrisés</option>
+    </select>
+  </div>
+  <div class="word-count" id="list-count"></div>
+  <div class="table-wrap">
+    <table class="word-table">
+      <thead>
+        <tr>
+          <th onclick="sortList('german')">Allemand <span class="sort-arrow" id="sort-german">↕</span></th>
+          <th onclick="sortList('french')">Français <span class="sort-arrow" id="sort-french">↕</span></th>
+          <th onclick="sortList('type')">Type <span class="sort-arrow" id="sort-type">↕</span></th>
+          <th onclick="sortList('chapter')">Ch. <span class="sort-arrow" id="sort-chapter">↕</span></th>
+          <th onclick="sortList('mastery')">Maîtrise <span class="sort-arrow" id="sort-mastery">↕</span></th>
+        </tr>
+      </thead>
+      <tbody id="list-body"></tbody>
+    </table>
+  </div>
+</div>
+
+
+<script>
+const VOCAB = [{"german": "Ablagekorb, der; -s, -¨e", "french": "bac à courrier", "type": "S", "chapter": 3}, {"german": "Akte, die; -, -n", "french": "dossier", "type": "S", "chapter": 3}, {"german": "Aktenschrank, der; -s, -¨e", "french": "meuble-classeur", "type": "S", "chapter": 3}, {"german": "Alltag, der; -s, -e", "french": "quotidien, vie quotidienne", "type": "S", "chapter": 3}, {"german": "alt", "french": "âgé", "type": "A", "chapter": 3}, {"german": "Anrede, die; -, -n", "french": "civilité, formule d'appel (début d'e-mail)", "type": "S", "chapter": 3}, {"german": "Artikel, der; -s, -", "french": "article", "type": "S", "chapter": 3}, {"german": "auf + acc/dat", "french": "sur", "type": "KW", "chapter": 3}, {"german": "Auftrag, der;  -(e)s -¨e", "french": "commande", "type": "S", "chapter": 3}, {"german": "bald", "french": "bientôt", "type": "KW", "chapter": 3}, {"german": "beantworten (z. B. eine Frage, eine E-Mail -)", "french": "répondre (p. ex. à une question, à un mail)", "type": "V", "chapter": 3}, {"german": "bei + datif", "french": "chez (+ personne ou entreprise; quand on y est)", "type": "KW", "chapter": 3}, {"german": "bekannt", "french": "connu", "type": "A", "chapter": 3}, {"german": "bekommen (bekam, hat bekommen)", "french": "recevoir", "type": "V", "chapter": 3}, {"german": "benutzen", "french": "utiliser, employer", "type": "V", "chapter": 3}, {"german": "Bereich, der; -s, -e", "french": "domaine", "type": "S", "chapter": 3}, {"german": "beschreiben (beschrieb, hat beschrieben)", "french": "décrire", "type": "V", "chapter": 3}, {"german": "besprechen (bespricht, besprach, hat besprochen) + Akk.", "french": "discuter de", "type": "V", "chapter": 3}, {"german": "Besprechung, die; -, -en", "french": "réunion, entretien", "type": "S", "chapter": 3}, {"german": "Besprechungstisch, der; -es, -e", "french": "table de réunion", "type": "S", "chapter": 3}, {"german": "bestellen", "french": "commander, passer une commande", "type": "V", "chapter": 3}, {"german": "Bestellliste, die; -, -n", "french": "liste de commandes", "type": "S", "chapter": 3}, {"german": "Bestellung, die; -, -en", "french": "commande", "type": "S", "chapter": 3}, {"german": "Besuch, der; -(e)s, -e", "french": "visite", "type": "S", "chapter": 3}, {"german": "Besuch, der; -s, -e", "french": "visite", "type": "S", "chapter": 3}, {"german": "besuchen", "french": "aller voir, visiter, rendre visite", "type": "V", "chapter": 3}, {"german": "Besucher, der; -s, -", "french": "visiteur", "type": "S", "chapter": 3}, {"german": "Besucherstuhl, der; -s, -¨e", "french": "chaise pour visiteur", "type": "S", "chapter": 3}, {"german": "Betonung, die; -, -en", "french": "accentuation", "type": "S", "chapter": 3}, {"german": "betrachten", "french": "considérer, examiner", "type": "V", "chapter": 3}, {"german": "Betreff, der; -s, -s", "french": "objet (d'un mail)", "type": "S", "chapter": 3}, {"german": "Bildschirm, der; -s, -e", "french": "écran", "type": "S", "chapter": 3}, {"german": "Bitte! / Nichts zu danken! / Gern geschehen!", "french": "De rien!", "type": "Aus", "chapter": 3}, {"german": "blau", "french": "bleu", "type": "A", "chapter": 3}, {"german": "Bleistift, der; -(e)s, -e", "french": "crayon", "type": "S", "chapter": 3}, {"german": "Block, der; -s, -¨e", "french": "bloc", "type": "S", "chapter": 3}, {"german": "brauchen + Akk.", "french": "avoir besoin de", "type": "V", "chapter": 3}, {"german": "braun", "french": "brun", "type": "A", "chapter": 3}, {"german": "breit", "french": "large", "type": "A", "chapter": 3}, {"german": "Breite, die; -, -n", "french": "largeur", "type": "S", "chapter": 3}, {"german": "Buch, das; -(e)s, -¨er", "french": "livre", "type": "S", "chapter": 3}, {"german": "Bürobedarf, der; -s, X", "french": "fournitures de bureau", "type": "S", "chapter": 3}, {"german": "Büroklammer, die; -, -n", "french": "trombone", "type": "S", "chapter": 3}, {"german": "circa = zirka (ca.)", "french": "environ", "type": "KW", "chapter": 3}, {"german": "Computer, der; -s, -", "french": "ordinateur", "type": "S", "chapter": 3}, {"german": "Dank, der; -s, X", "french": "merci, remerciement", "type": "S", "chapter": 3}, {"german": "dann", "french": "alors, après", "type": "KW", "chapter": 3}, {"german": "dringend", "french": "urgent", "type": "A", "chapter": 3}, {"german": "drucken", "french": "imprimer", "type": "V", "chapter": 3}, {"german": "Drucker, der; -s, -", "french": "imprimante", "type": "S", "chapter": 3}, {"german": "Druckerpapier, das; -s, X", "french": "papier pour imprimante", "type": "S", "chapter": 3}, {"german": "EDV, die (= elektronische Datenverarbeitung)", "french": "informatique", "type": "S", "chapter": 3}, {"german": "ein Unternehmen gründen", "french": "créer une entreprise", "type": "Aus", "chapter": 3}, {"german": "es gibt + Akk.", "french": "il y a", "type": "Aus", "chapter": 3}, {"german": "etwas", "french": "quelque chose, un peu de", "type": "KW", "chapter": 3}, {"german": "europaweit", "french": "dans toute l'Europe", "type": "A", "chapter": 3}, {"german": "Farbe, die; -, -n", "french": "couleur", "type": "S", "chapter": 3}, {"german": "Fehler, der; -s, -", "french": "faute", "type": "S", "chapter": 3}, {"german": "Fenster, das; -s, -", "french": "fenêtre", "type": "S", "chapter": 3}, {"german": "finden (fand, hat gefunden)", "french": "trouver", "type": "V", "chapter": 3}, {"german": "Flipchart, das; -s, -s", "french": "tableau de conférence (flipchart)", "type": "S", "chapter": 3}, {"german": "funktionieren", "french": "fonctionner", "type": "V", "chapter": 3}, {"german": "gelb", "french": "jaune", "type": "A", "chapter": 3}, {"german": "genug", "french": "assez", "type": "KW", "chapter": 3}, {"german": "Gerät, das; -s, -e", "french": "appareil", "type": "S", "chapter": 3}, {"german": "Geschäftsbereich, der; -s, -e", "french": "domaine d'activité", "type": "S", "chapter": 3}, {"german": "gleich", "french": "tout de suite", "type": "KW", "chapter": 3}, {"german": "Glück, das; -(e)s, X", "french": "chance", "type": "S", "chapter": 3}, {"german": "grau", "french": "gris", "type": "A", "chapter": 3}, {"german": "grün", "french": "vert", "type": "A", "chapter": 3}, {"german": "Gruß, der; -es, -¨e", "french": "salut", "type": "S", "chapter": 3}, {"german": "Grußformel, die; -, -n", "french": "formule de politesse (fin d'e-mail)", "type": "S", "chapter": 3}, {"german": "haben (hat, hatte, hat gehabt)", "french": "avoir", "type": "V", "chapter": 3}, {"german": "Heftmaschine, die; -, -n", "french": "agrafeuse", "type": "S", "chapter": 3}, {"german": "hell", "french": "clair (= pas foncé)", "type": "A", "chapter": 3}, {"german": "Hilfe, die; -, -n", "french": "aide", "type": "S", "chapter": 3}, {"german": "Hotel, das; -s, -s", "french": "hôtel", "type": "S", "chapter": 3}, {"german": "Hotline, die; -, -s", "french": "hotline", "type": "S", "chapter": 3}, {"german": "im Voraus", "french": "d'avance", "type": "KW", "chapter": 3}, {"german": "Information, die; -, -en", "french": "information", "type": "S", "chapter": 3}, {"german": "Job, der; -s, -s", "french": "job", "type": "S", "chapter": 3}, {"german": "Kalender, der; -s, -", "french": "calendrier", "type": "S", "chapter": 3}, {"german": "kaputt", "french": "cassé", "type": "A", "chapter": 3}, {"german": "Katalog, der; -s, -e", "french": "catalogue", "type": "S", "chapter": 3}, {"german": "kennen (kannte, hat gekannt)", "french": "connaître", "type": "V", "chapter": 3}, {"german": "klappen", "french": "bien marcher", "type": "V", "chapter": 3}, {"german": "kompetent", "french": "compétent", "type": "A", "chapter": 3}, {"german": "Korb, der; -s, -¨e", "french": "panier", "type": "S", "chapter": 3}, {"german": "Kugelschreiber, der; -s, - = Kuli, der; -s, -s", "french": "bic", "type": "S", "chapter": 3}, {"german": "Kunde, der; -n, -n / Kundin, die; -, -nen", "french": "client/e", "type": "S", "chapter": 3}, {"german": "Kundenservice, der; -s, -s", "french": "service après-vente", "type": "S", "chapter": 3}, {"german": "Lampe, die; -, -n", "french": "lampe", "type": "S", "chapter": 3}, {"german": "leer", "french": "vide", "type": "A", "chapter": 3}, {"german": "leiten", "french": "diriger", "type": "V", "chapter": 3}, {"german": "Licht, das; -(e), -er", "french": "lumière", "type": "S", "chapter": 3}, {"german": "Liebe Grüße (LG sms)", "french": "bien à toi / bien à vous / bisous (fin d'un mail ou d'un sms, informel)", "type": "Aus", "chapter": 3}, {"german": "lila (nicht dekliniert)", "french": "mauve", "type": "A", "chapter": 3}, {"german": "Liste, die; -, -n", "french": "liste", "type": "S", "chapter": 3}, {"german": "Locher, der; -s, -", "french": "perforatrice", "type": "S", "chapter": 3}, {"german": "Marker, der; -s, -", "french": "marqueur", "type": "S", "chapter": 3}, {"german": "Maus, die; -, -¨e", "french": "souris", "type": "S", "chapter": 3}, {"german": "Mauspad, das; -s, -s", "french": "tapis pour souris", "type": "S", "chapter": 3}, {"german": "Menge, die; -, -n", "french": "quantité, tas", "type": "S", "chapter": 3}, {"german": "Möbel, das; -s, -", "french": "meuble", "type": "S", "chapter": 3}, {"german": "Monitor, der; -s, -en", "french": "moniteur (écran)", "type": "S", "chapter": 3}, {"german": "nennen (nannte, hat genannt)", "french": "appeler, nommer", "type": "V", "chapter": 3}, {"german": "nichts", "french": "rien", "type": "KW", "chapter": 3}, {"german": "Noch etwas?", "french": "(Il vous faut) autre chose?", "type": "Aus", "chapter": 3}, {"german": "Note, die; -, -n", "french": "note", "type": "S", "chapter": 3}, {"german": "Notebook, das; -s, -s", "french": "ordinateur portable", "type": "S", "chapter": 3}, {"german": "Notizblock, der; -s, -¨e", "french": "bloc-notes", "type": "S", "chapter": 3}, {"german": "Notizen, die Plur.", "french": "notes de cours", "type": "S", "chapter": 3}, {"german": "oben", "french": "en haut", "type": "KW", "chapter": 3}, {"german": "Ordner, der; -s, -", "french": "classeur", "type": "S", "chapter": 3}, {"german": "Papier, das; -s, -e", "french": "papier", "type": "S", "chapter": 3}, {"german": "Papierkorb, der; -(e)s, ¨e", "french": "corbeille à papier", "type": "S", "chapter": 3}, {"german": "passieren (ist passiert)", "french": "arriver, se passer, se produire", "type": "V", "chapter": 3}, {"german": "Personal Computer = PC, der; -s, -", "french": "PC", "type": "S", "chapter": 3}, {"german": "praktisch", "french": "pratique", "type": "A", "chapter": 3}, {"german": "Problem, das; -s, -e", "french": "problème", "type": "S", "chapter": 3}, {"german": "produzieren", "french": "fabriquer, produire", "type": "V", "chapter": 3}, {"german": "Radiergummi, der; -s, -s", "french": "gomme (à effacer)", "type": "S", "chapter": 3}, {"german": "Radio, das; -s, -s", "french": "radio", "type": "S", "chapter": 3}, {"german": "Radiosendung, die; -, -en", "french": "émission radio", "type": "S", "chapter": 3}, {"german": "Regal, das; -s, -e", "french": "étagère", "type": "S", "chapter": 3}, {"german": "Regel, die; -, -n", "french": "règle", "type": "S", "chapter": 3}, {"german": "Reparatur, die; -, -en", "french": "réparation", "type": "S", "chapter": 3}, {"german": "reparieren", "french": "réparer", "type": "V", "chapter": 3}, {"german": "Rollcontainer, der; -s, -", "french": "caisson à roulettes", "type": "S", "chapter": 3}, {"german": "Rolle, die; -, -n", "french": "rôle", "type": "S", "chapter": 3}, {"german": "rosa (nicht dekliniert)", "french": "rose", "type": "A", "chapter": 3}, {"german": "rot", "french": "rouge", "type": "A", "chapter": 3}, {"german": "schauen", "french": "regarder (intrans.)", "type": "V", "chapter": 3}, {"german": "schmal", "french": "étroit", "type": "A", "chapter": 3}, {"german": "Schrank, der; -(e)s, -¨e", "french": "armoire", "type": "S", "chapter": 3}, {"german": "Schreibtisch, der; -(e)s, -e", "french": "bureau (table)", "type": "S", "chapter": 3}, {"german": "Schreibtisch, der; -es, -e", "french": "bureau (meuble)", "type": "S", "chapter": 3}, {"german": "Schreibtischlampe, die; -, -n", "french": "lampe de bureau", "type": "S", "chapter": 3}, {"german": "Schreibtischstuhl, der; -s, -¨e", "french": "chaise de bureau", "type": "S", "chapter": 3}, {"german": "schriftlich", "french": "écrit", "type": "A", "chapter": 3}, {"german": "schwarz", "french": "noir", "type": "A", "chapter": 3}, {"german": "seit + datif", "french": "depuis", "type": "KW", "chapter": 3}, {"german": "Sendung, die; -, -en", "french": "émission", "type": "S", "chapter": 3}, {"german": "Service, der; -s, X", "french": "service", "type": "S", "chapter": 3}, {"german": "simsen", "french": "envoyer des SMS", "type": "V", "chapter": 3}, {"german": "SMS, die; -, -", "french": "SMS", "type": "S", "chapter": 3}, {"german": "Spitzer, der; -s, -", "french": "taille-crayon", "type": "S", "chapter": 3}, {"german": "Standort, der; -s, -e", "french": "site (d'une entreprise)", "type": "S", "chapter": 3}, {"german": "starten", "french": "démarrer", "type": "V", "chapter": 3}, {"german": "Stift, der; -s, -e", "french": "crayon, stylo", "type": "S", "chapter": 3}, {"german": "Struktur, die; -, -en", "french": "structure", "type": "S", "chapter": 3}, {"german": "Stuhl, der; -(e)s, -¨e", "french": "chaise", "type": "S", "chapter": 3}, {"german": "Tastatur, die; -, -en", "french": "clavier", "type": "S", "chapter": 3}, {"german": "tätig sein (er ist, war, ist gewesen)", "french": "être actif", "type": "V", "chapter": 3}, {"german": "Tätigkeit, die; -, -en", "french": "activité", "type": "S", "chapter": 3}, {"german": "tauschen", "french": "échanger", "type": "V", "chapter": 3}, {"german": "Technik, die; -, -en", "french": "technique", "type": "S", "chapter": 3}, {"german": "Techniker, der; -s, - / Technikerin, die; -, -nen", "french": "technicien/ne", "type": "S", "chapter": 3}, {"german": "technisch", "french": "technique", "type": "A", "chapter": 3}, {"german": "Telefon, das; -s, -e", "french": "téléphone", "type": "S", "chapter": 3}, {"german": "Text, der; -es, -e", "french": "paroles", "type": "S", "chapter": 3}, {"german": "Tisch, der; -es, -e", "french": "table", "type": "S", "chapter": 3}, {"german": "Tür, die; -, -en", "french": "porte", "type": "S", "chapter": 3}, {"german": "Unternehmen, das; -s, -", "french": "entreprise", "type": "S", "chapter": 3}, {"german": "Unternehmensgründung, die; -, -en", "french": "fondation d'entreprise", "type": "S", "chapter": 3}, {"german": "Viele Grüße", "french": "Bien le bonjour", "type": "Aus", "chapter": 3}, {"german": "vielleicht", "french": "peut-être", "type": "KW", "chapter": 3}, {"german": "von + datif", "french": "de", "type": "KW", "chapter": 3}, {"german": "wann?", "french": "quand?", "type": "KW", "chapter": 3}, {"german": "weiß", "french": "blanc", "type": "A", "chapter": 3}, {"german": "Welche Farbe(n) hat / haben …?", "french": "De quelle couleur est/sont …?", "type": "Aus", "chapter": 3}, {"german": "Wohnung, die; -, -en", "french": "appartement", "type": "S", "chapter": 3}, {"german": "Wörterbuch, das; -(e)s, -¨er", "french": "dictionnaire", "type": "S", "chapter": 3}, {"german": "(zu)erst", "french": "d'abord", "type": "KW", "chapter": 3}, {"german": "zufrieden (mit + Dat.)", "french": "content (de)", "type": "A", "chapter": 3}, {"german": "Abend, der; -s, -e", "french": "soir", "type": "S", "chapter": 4}, {"german": "abends", "french": "le soir", "type": "KW", "chapter": 4}, {"german": "Abendessen, das; -s, X", "french": "dîner", "type": "S", "chapter": 4}, {"german": "aber", "french": "mais", "type": "KW", "chapter": 4}, {"german": "Accessoire, das; -s, -s", "french": "accessoire (de mode)", "type": "S", "chapter": 4}, {"german": "am + partie de jour, jour ou date", "french": "le (matin, soir, …; lundi, mardi, …; 2 mai)", "type": "KW", "chapter": 4}, {"german": "am Mittag / zu Mittag", "french": "sur le temps de midi", "type": "Aus", "chapter": 4}, {"german": "am Morgen / Vormittag / Nachmittag / Abend", "french": "le matin / l'avant-midi / l'après-midi / le soir (compléments de temps)", "type": "Aus", "chapter": 4}, {"german": "Anzeige, die; -, -n / Annonce, die; -, -n", "french": "annonce", "type": "S", "chapter": 4}, {"german": "Bau, der; -s, -ten", "french": "édifice, construction", "type": "S", "chapter": 4}, {"german": "Abbau, der; -s, X", "french": "démontage", "type": "S", "chapter": 4}, {"german": "Aufbau, der; -s, X", "french": "mise en place, montage", "type": "S", "chapter": 4}, {"german": "beruflich", "french": "professionnel", "type": "A", "chapter": 4}, {"german": "Bildung, die; -, X", "french": "culture, formation, enseignement", "type": "S", "chapter": 4}, {"german": "Ausbildung, die; -, -en", "french": "formation", "type": "S", "chapter": 4}, {"german": "Weiterbildung, die; -, -en", "french": "formation continue", "type": "S", "chapter": 4}, {"german": "bis + acc", "french": "jusque", "type": "KW", "chapter": 4}, {"german": "da", "french": "là (statique)", "type": "KW", "chapter": 4}, {"german": "Dame, die; -, -n", "french": "dame", "type": "S", "chapter": 4}, {"german": "Datum, das; -s, Daten", "french": "date", "type": "S", "chapter": 4}, {"german": "Der Wievielte ist heute?", "french": "On est le combien aujourd'hui?", "type": "Aus", "chapter": 4}, {"german": "Heute ist der 5. September.", "french": "Aujourd'hui, on est le 5 septembre.", "type": "Aus", "chapter": 4}, {"german": "denn", "french": "car", "type": "KW", "chapter": 4}, {"german": "essen (isst, aβ, hat gegessen)", "french": "manger", "type": "V", "chapter": 4}, {"german": "essen gehen (ging, ist gegangen)", "french": "aller manger", "type": "V", "chapter": 4}, {"german": "Essen, das; -s, -", "french": "repas", "type": "S", "chapter": 4}, {"german": "Mittagessen, das; -s, X", "french": "déjeuner", "type": "S", "chapter": 4}, {"german": "zu Abend essen (isst, aß, hat gegessen)", "french": "souper (France: dîner)", "type": "V", "chapter": 4}, {"german": "zu Mittag essen (isst, aß, hat gegessen)", "french": "dîner (midi) (France: déjeuner)", "type": "V", "chapter": 4}, {"german": "frei", "french": "libre", "type": "A", "chapter": 4}, {"german": "Freund, der; -es, -e / Freundin, die; -, -nen", "french": "ami/e", "type": "S", "chapter": 4}, {"german": "für + acc", "french": "pour", "type": "KW", "chapter": 4}, {"german": "gehen (ging, ist gegangen)", "french": "aller", "type": "V", "chapter": 4}, {"german": "Um wie viel Uhr geht es?", "french": "A quelle heure est-ce que ça va?", "type": "Aus", "chapter": 4}, {"german": "Wann können Sie?", "french": "Quand est-ce possible pour vous?", "type": "Aus", "chapter": 4}, {"german": "Geht das?", "french": "Est-ce que ça va (c'est possible)?", "type": "Aus", "chapter": 4}, {"german": "Geht es heute?", "french": "Est-ce que ça va (c'est possible) aujourd'hui?", "type": "Aus", "chapter": 4}, {"german": "Geht es um 9 Uhr?", "french": "Est-ce que ça va (c'est possible) à neuf heures?", "type": "Aus", "chapter": 4}, {"german": "Können Sie um 9?", "french": "Est-ce possible pour vous à 9 heures?", "type": "Aus", "chapter": 4}, {"german": "Das geht (nicht).", "french": "Ca va (C'est possible) / Ca ne va pas (Ce n'est pas possible).", "type": "Aus", "chapter": 4}, {"german": "Heute geht es.", "french": "Ca va (C'est possible) aujourd'hui.", "type": "Aus", "chapter": 4}, {"german": "Ich kann heute nicht.", "french": "Aujourd'hui, ce n'est pas possible pour moi.", "type": "Aus", "chapter": 4}, {"german": "Um 9 Uhr geht es.", "french": "Ca va (C'est possible) à 9h.", "type": "Aus", "chapter": 4}, {"german": "grüßen", "french": "saluer", "type": "V", "chapter": 4}, {"german": "Heimat, die; -, X", "french": "patrie", "type": "S", "chapter": 4}, {"german": "Heimatland, das; -es, -¨er", "french": "pays d'origine", "type": "S", "chapter": 4}, {"german": "heute", "french": "aujourd'hui", "type": "KW", "chapter": 4}, {"german": "im + mois ou saison", "french": "en (+ mois ou saison)", "type": "KW", "chapter": 4}, {"german": "installieren", "french": "installer", "type": "V", "chapter": 4}, {"german": "Jahreszeit, die; -, -en", "french": "saison", "type": "S", "chapter": 4}, {"german": "Frühling, der; -s, -e", "french": "printemps", "type": "S", "chapter": 4}, {"german": "Sommer, der; -s, -", "french": "été", "type": "S", "chapter": 4}, {"german": "Herbst, der; -es, -e", "french": "automne", "type": "S", "chapter": 4}, {"german": "Winter, der; -s, -", "french": "hiver", "type": "S", "chapter": 4}, {"german": "Kaffee, der; -s, X", "french": "café (boisson)", "type": "S", "chapter": 4}, {"german": "kein", "french": "aucun, pas de", "type": "KW", "chapter": 4}, {"german": "Kino, das; -s, -s", "french": "cinéma", "type": "S", "chapter": 4}, {"german": "ins Kino gehen (ging, ist gegangen)", "french": "aller au cinéma", "type": "Aus", "chapter": 4}, {"german": "Kleidung, die; -, X", "french": "vêtements", "type": "S", "chapter": 4}, {"german": "Konferenz, die; -, -en", "french": "conférence", "type": "S", "chapter": 4}, {"german": "können (kann, konnte, hat gekonnt)", "french": "pouvoir = avoir la possibilité, être capable de", "type": "V", "chapter": 4}, {"german": "Link, der; -s, -s", "french": "lien (internet)", "type": "S", "chapter": 4}, {"german": "mailen", "french": "envoyer par mail", "type": "V", "chapter": 4}, {"german": "Meeting, das; -s, -s", "french": "meeting, réunion", "type": "S", "chapter": 4}, {"german": "Messe, die; -, -n", "french": "foire commerciale", "type": "S", "chapter": 4}, {"german": "Messestand, der; -s, -¨e", "french": "stand d'une foire", "type": "S", "chapter": 4}, {"german": "Minute, die; -, -n", "french": "minute", "type": "S", "chapter": 4}, {"german": "mit + dat.", "french": "avec", "type": "KW", "chapter": 4}, {"german": "Mittag, der; -s, -e", "french": "midi", "type": "S", "chapter": 4}, {"german": "mittags", "french": "le midi", "type": "KW", "chapter": 4}, {"german": "Mode, die; -, -n", "french": "mode (fashion)", "type": "S", "chapter": 4}, {"german": "Monat, der; -s, -e", "french": "mois", "type": "S", "chapter": 4}, {"german": "Januar, der", "french": "janvier", "type": "S", "chapter": 4}, {"german": "Februar, der", "french": "février", "type": "S", "chapter": 4}, {"german": "März, der", "french": "mars", "type": "S", "chapter": 4}, {"german": "April, der", "french": "avril", "type": "S", "chapter": 4}, {"german": "Mai, der", "french": "mai", "type": "S", "chapter": 4}, {"german": "Juni, der", "french": "juin", "type": "S", "chapter": 4}, {"german": "Juli, der", "french": "juillet", "type": "S", "chapter": 4}, {"german": "August, der", "french": "août", "type": "S", "chapter": 4}, {"german": "September, der", "french": "septembre", "type": "S", "chapter": 4}, {"german": "Oktober, der", "french": "octobre", "type": "S", "chapter": 4}, {"german": "November, der", "french": "novembre", "type": "S", "chapter": 4}, {"german": "Dezember, der", "french": "décembre", "type": "S", "chapter": 4}, {"german": "morgen", "french": "demain", "type": "KW", "chapter": 4}, {"german": "Morgen, der; -s, -", "french": "matin", "type": "S", "chapter": 4}, {"german": "morgens", "french": "le matin", "type": "KW", "chapter": 4}, {"german": "nach + dat.", "french": "après", "type": "KW", "chapter": 4}, {"german": "Nachmittag, der; -s, -e", "french": "après-midi", "type": "S", "chapter": 4}, {"german": "nachmittags", "french": "l'après-midi", "type": "KW", "chapter": 4}, {"german": "Nacht, die; -, -¨e", "french": "nuit", "type": "S", "chapter": 4}, {"german": "nachts", "french": "la nuit", "type": "KW", "chapter": 4}, {"german": "in der Nacht", "french": "pendant la nuit", "type": "Aus", "chapter": 4}, {"german": "nicht", "french": "ne … pas", "type": "KW", "chapter": 4}, {"german": "oder", "french": "ou", "type": "KW", "chapter": 4}, {"german": "offiziell", "french": "officiel", "type": "A", "chapter": 4}, {"german": "inoffiziell", "french": "officieux, non officiel", "type": "A", "chapter": 4}, {"german": "organisieren", "french": "organiser", "type": "V", "chapter": 4}, {"german": "planen", "french": "planifier", "type": "V", "chapter": 4}, {"german": "Planung, die; -, -en", "french": "planification", "type": "S", "chapter": 4}, {"german": "Präsentation, die; -, -en", "french": "présentation (orale)", "type": "S", "chapter": 4}, {"german": "privat", "french": "privé", "type": "A", "chapter": 4}, {"german": "Produkt, das; -s, -e", "french": "produit", "type": "S", "chapter": 4}, {"german": "Restaurant, das; -s, -s", "french": "restaurant", "type": "S", "chapter": 4}, {"german": "schick", "french": "chic", "type": "A", "chapter": 4}, {"german": "Schuh, der; -s, -e", "french": "chaussure, soulier", "type": "S", "chapter": 4}, {"german": "Skype-Konferenz, die; -, -en", "french": "conférence par Skype", "type": "S", "chapter": 4}, {"german": "skypen", "french": "faire un skype", "type": "V", "chapter": 4}, {"german": "spät", "french": "tard", "type": "KW", "chapter": 4}, {"german": "Sport, der; -s, X", "french": "sport", "type": "S", "chapter": 4}, {"german": "Stress, der; -es, X", "french": "stress", "type": "S", "chapter": 4}, {"german": "Studium, das; -s, X", "french": "études", "type": "S", "chapter": 4}, {"german": "Stunde, die; -, -n", "french": "heure (durée)", "type": "S", "chapter": 4}, {"german": "Viertelstunde, die; -, -n", "french": "quart d'heure", "type": "S", "chapter": 4}, {"german": "halbe Stunde, die", "french": "demi-heure", "type": "S", "chapter": 4}, {"german": "eine Dreiviertelstunde", "french": "trois quarts d'heure", "type": "Aus", "chapter": 4}, {"german": "Tag, der; -(e)s, -e", "french": "jour", "type": "S", "chapter": 4}, {"german": "Montag, der; -s, -e", "french": "lundi", "type": "S", "chapter": 4}, {"german": "Dienstag, der; -s, -e", "french": "mardi", "type": "S", "chapter": 4}, {"german": "Mittwoch, der; -s, -e", "french": "mercredi", "type": "S", "chapter": 4}, {"german": "Donnerstag, der; -s, -e", "french": "jeudi", "type": "S", "chapter": 4}, {"german": "Freitag, der; -s, -e", "french": "vendredi", "type": "S", "chapter": 4}, {"german": "Samstag, der; -s, -e", "french": "samedi", "type": "S", "chapter": 4}, {"german": "Sonntag, der; -s, -e", "french": "dimanche", "type": "S", "chapter": 4}, {"german": "Technologie, die; -, -n", "french": "technologie", "type": "S", "chapter": 4}, {"german": "Informationstechnologie, die; -, -n", "french": "technologie de l'information", "type": "S", "chapter": 4}, {"german": "Unterhaltungstechnologie, die; -, -n", "french": "technologie de divertissement", "type": "S", "chapter": 4}, {"german": "Termin, der; -s, -e", "french": "rendez-vous", "type": "S", "chapter": 4}, {"german": "einen Termin machen", "french": "prendre, fixer un rendez-vous", "type": "V", "chapter": 4}, {"german": "treffen (trifft, traf, hat getroffen)", "french": "rencontrer; toucher (au sens figuré)", "type": "V", "chapter": 4}, {"german": "Treffen, das; -s, -", "french": "rencontre, réunion", "type": "S", "chapter": 4}, {"german": "Treffpunkt, der; -s, -e", "french": "lieu de rendez-vous, point de rencontre", "type": "S", "chapter": 4}, {"german": "Uhr, die; -, Uhrzeiten", "french": "heure (qu'il est, cf. o'clock)", "type": "S", "chapter": 4}, {"german": "Es ist fünf (Uhr)", "french": "Il est cinq heures", "type": "Aus", "chapter": 4}, {"german": "Es ist Punkt eins", "french": "Il est une heure pile.", "type": "Aus", "chapter": 4}, {"german": "halb", "french": "demi", "type": "A", "chapter": 4}, {"german": "Es ist halb zwei.", "french": "Il est une heure et demie.", "type": "Aus", "chapter": 4}, {"german": "Es ist Viertel nach zwei.", "french": "Il est deux heures quart.", "type": "Aus", "chapter": 4}, {"german": "Es ist Viertel vor drei.", "french": "Il est trois heures moins le quart.", "type": "Aus", "chapter": 4}, {"german": "Es ist zehn nach vier.", "french": "Il est quatre heures dix.", "type": "Aus", "chapter": 4}, {"german": "Es ist zehn vor zwei.", "french": "Il est deux heures moins dix.", "type": "Aus", "chapter": 4}, {"german": "um + heure", "french": "à + heure", "type": "KW", "chapter": 4}, {"german": "Um wie viel Uhr …?", "french": "A quelle heure …?", "type": "Aus", "chapter": 4}, {"german": "und", "french": "et", "type": "KW", "chapter": 4}, {"german": "Urlaub, der; -s, X", "french": "congés payés, vacances", "type": "S", "chapter": 4}, {"german": "vom… bis (zum)…", "french": "du … au …", "type": "KW", "chapter": 4}, {"german": "von … bis …", "french": "de … à …", "type": "KW", "chapter": 4}, {"german": "vor + dat.", "french": "avant", "type": "KW", "chapter": 4}, {"german": "Vormittag, der; -s, -e", "french": "avant-midi", "type": "S", "chapter": 4}, {"german": "vormittags", "french": "l'avant-midi", "type": "KW", "chapter": 4}, {"german": "Wie spät ist es? Wieviel Uhr ist es?", "french": "Quelle heure est-il?", "type": "Aus", "chapter": 4}, {"german": "Wie viel?", "french": "Combien?", "type": "KW", "chapter": 4}, {"german": "Woche, die; -, -n", "french": "semaine", "type": "S", "chapter": 4}, {"german": "Wochenende, das; -s, -n", "french": "week-end", "type": "S", "chapter": 4}, {"german": "Zeit, die; -, -en", "french": "temps", "type": "S", "chapter": 4}, {"german": "Wann haben Sie Zeit?", "french": "Quand avez-vous le temps?", "type": "Aus", "chapter": 4}, {"german": "Haben Sie heute Zeit?", "french": "Avez-vous le temps aujourd'hui?", "type": "Aus", "chapter": 4}, {"german": "Ich habe heute keine Zeit.", "french": "Je n'ai pas le temps aujourd'hui.", "type": "Aus", "chapter": 4}, {"german": "Abkürzung, die; -, -en", "french": "abréviation", "type": "S", "chapter": 1}, {"german": "Adresse, die; -, -n", "french": "adresse", "type": "S", "chapter": 1}, {"german": "alles", "french": "tout", "type": "KW", "chapter": 1}, {"german": "Alphabet, das; -s, -e", "french": "alphabet", "type": "S", "chapter": 1}, {"german": "alphabetisch", "french": "alphabétique", "type": "A", "chapter": 1}, {"german": "Altenpfleger, der; -s, -", "french": "infirmier pour personnes âgées", "type": "S", "chapter": 1}, {"german": "ankreuzen (sép.)", "french": "cocher", "type": "V", "chapter": 1}, {"german": "Antwort, die; -, -en (auf + Akk.)", "french": "réponse (à qqch)", "type": "S", "chapter": 1}, {"german": "antworten (+ Dat.)", "french": "répondre (à qqn)", "type": "V", "chapter": 1}, {"german": "antworten (auf + Akk.)", "french": "répondre (à qqch)", "type": "V", "chapter": 1}, {"german": "Anweisung, die; -, -en", "french": "consigne, instruction", "type": "S", "chapter": 1}, {"german": "Arbeitsanweisung, die; -, -en", "french": "instruction de travail", "type": "S", "chapter": 1}, {"german": "Architekt, der; -en, -en", "french": "architecte", "type": "S", "chapter": 1}, {"german": "Arzt, der; -es, -¨e / Ärztin, die; -, -nen", "french": "médecin", "type": "S", "chapter": 1}, {"german": "aus + D", "french": "(hors) de", "type": "KW", "chapter": 1}, {"german": "Australien / australisch", "french": "Australie / australien", "type": "S/A", "chapter": 1}, {"german": "Australier(in)", "french": "Australien(ne)", "type": "S", "chapter": 1}, {"german": "Bachelor, der; -s, X", "french": "bac(helier)", "type": "S", "chapter": 1}, {"german": "Bankkaufmann, der; -s, -kaufleute", "french": "commercial, conseiller dans une banque", "type": "S", "chapter": 1}, {"german": "bauen", "french": "construire", "type": "V", "chapter": 1}, {"german": "Bauingenieur, der; -s, -e", "french": "ingénieur civil", "type": "S", "chapter": 1}, {"german": "beenden", "french": "finir (trans.), terminer", "type": "V", "chapter": 1}, {"german": "Beginn, der; -s, X", "french": "commencement, début", "type": "S", "chapter": 1}, {"german": "beginnen (begann, hat begonnen)", "french": "commencer", "type": "V", "chapter": 1}, {"german": "begrüßen", "french": "saluer", "type": "V", "chapter": 1}, {"german": "Begrüßung, die; -, -en", "french": "salutation", "type": "S", "chapter": 1}, {"german": "Belastung, die; -, -en", "french": "charge de travail", "type": "S", "chapter": 1}, {"german": "Beruf, der; -(e)s, -e", "french": "métier, profession", "type": "S", "chapter": 1}, {"german": "Bitte", "french": "s'il vous plait, s'il te plait", "type": "Aus", "chapter": 1}, {"german": "buchstabieren", "french": "épeler", "type": "V", "chapter": 1}, {"german": "Bus, der; -ses, -se", "french": "bus", "type": "S", "chapter": 1}, {"german": "Busfahrer, der; -s, -", "french": "chauffeur de bus", "type": "S", "chapter": 1}, {"german": "BWL-Studium, das; -s, X", "french": "études de sciences économiques et de gestion", "type": "S", "chapter": 1}, {"german": "Café, das; -s, -s", "french": "café (lieu)", "type": "S", "chapter": 1}, {"german": "Danke (schön)", "french": "Merci!", "type": "Aus", "chapter": 1}, {"german": "Designer, der; -s, -", "french": "designer", "type": "S", "chapter": 1}, {"german": "doch", "french": "si (= oui)", "type": "KW", "chapter": 1}, {"german": "E-Mail-Adresse, die; -, -n", "french": "adresse email", "type": "S", "chapter": 1}, {"german": "E-Mail, die; -, -s", "french": "e-mail", "type": "S", "chapter": 1}, {"german": "enden", "french": "finir (intrans.), se terminer", "type": "V", "chapter": 1}, {"german": "ergänzen", "french": "compléter", "type": "V", "chapter": 1}, {"german": "Fach, das; -es, -¨er", "french": "matière, branche", "type": "S", "chapter": 1}, {"german": "Fachmann, der; -(e)s, -¨er / Fachfrau, die; -, -en / Fachleute (Mann und Frau)", "french": "spécialiste, expert/e", "type": "S", "chapter": 1}, {"german": "Fahrer, der; -s, - / Fahrerin, die; -, -nen", "french": "conducteur / conductrice, chauffeur", "type": "S", "chapter": 1}, {"german": "falsch", "french": "faux", "type": "A", "chapter": 1}, {"german": "Familie, die; -, -n", "french": "famille", "type": "S", "chapter": 1}, {"german": "Familienname, der; -ns, -n", "french": "nom de famille", "type": "S", "chapter": 1}, {"german": "Fimenname, der; -ns, -n", "french": "nom de l'entreprise", "type": "S", "chapter": 1}, {"german": "Firma, die; -, Firmen", "french": "firme", "type": "S", "chapter": 1}, {"german": "formell", "french": "formel, poli", "type": "A", "chapter": 1}, {"german": "Foto, das; -s, -s", "french": "photo", "type": "S", "chapter": 1}, {"german": "Frage, die; -, -n", "french": "question", "type": "S", "chapter": 1}, {"german": "fragen + Akk. (nach + Dat.)", "french": "demander (pour connaître, savoir)", "type": "V", "chapter": 1}, {"german": "Frau, die; -, -en", "french": "femme, madame", "type": "S", "chapter": 1}, {"german": "Funktion, die; -, -en", "french": "fonction", "type": "S", "chapter": 1}, {"german": "Garten, der; -s, -¨", "french": "jardin", "type": "S", "chapter": 1}, {"german": "Gärtner, der; -s, -", "french": "jardinier", "type": "S", "chapter": 1}, {"german": "Gespräch, das; -s, -e", "french": "conversation, entretien", "type": "S", "chapter": 1}, {"german": "groß", "french": "grand", "type": "A", "chapter": 1}, {"german": "Grüß Gott!", "french": "Bonjour! (sud)", "type": "Aus", "chapter": 1}, {"german": "Gute Nacht!", "french": "Bonne nuit!", "type": "Aus", "chapter": 1}, {"german": "Guten Abend!", "french": "Bonsoir!", "type": "Aus", "chapter": 1}, {"german": "Guten Morgen!", "french": "Bonjour! (le matin)", "type": "Aus", "chapter": 1}, {"german": "Guten Tag!", "french": "Bonjour!", "type": "Aus", "chapter": 1}, {"german": "Hallo!", "french": "Bonjour!", "type": "Aus", "chapter": 1}, {"german": "Handy, das; -s, -s", "french": "GSM", "type": "S", "chapter": 1}, {"german": "Haus, das; -es, -¨er", "french": "maison", "type": "S", "chapter": 1}, {"german": "Hausnummer, die; -, -n", "french": "numéro de maison", "type": "S", "chapter": 1}, {"german": "heißen (hieß, hat geheißen)", "french": "s'appeler", "type": "V", "chapter": 1}, {"german": "Herr, der; -n, -en", "french": "monsieur", "type": "S", "chapter": 1}, {"german": "Herz, das; -ens, -en", "french": "cœur", "type": "S", "chapter": 1}, {"german": "Herzlich willkommen!", "french": "Bienvenue!", "type": "Aus", "chapter": 1}, {"german": "hier", "french": "ici", "type": "KW", "chapter": 1}, {"german": "hören", "french": "entendre, apprendre (une nouvelle)", "type": "V", "chapter": 1}, {"german": "Hotelfachmann, der; -s, -fachleute", "french": "hôtelier", "type": "S", "chapter": 1}, {"german": "im Internet surfen", "french": "surfer sur internet", "type": "Aus", "chapter": 1}, {"german": "Informatiker, der; -s, -", "french": "informaticien", "type": "S", "chapter": 1}, {"german": "informell", "french": "informel, familier", "type": "A", "chapter": 1}, {"german": "Ingenieur, der; -s, -e / Ingenieurin, die; -, -nen", "french": "ingénieur/e", "type": "S", "chapter": 1}, {"german": "ins Internet gehen", "french": "aller sur internet", "type": "Aus", "chapter": 1}, {"german": "Internet, das; -s, -", "french": "internet", "type": "S", "chapter": 1}, {"german": "Internetadresse, die; -, -n", "french": "adresse internet", "type": "S", "chapter": 1}, {"german": "ja", "french": "oui", "type": "KW", "chapter": 1}, {"german": "Journalist, der; -en, -en / Journalistin, die; -, -nen", "french": "journaliste", "type": "S", "chapter": 1}, {"german": "klein", "french": "petit", "type": "A", "chapter": 1}, {"german": "Koch, der; -(e)s, -¨e / Köchin, die; -, nen", "french": "cuisinier / cuisinière", "type": "S", "chapter": 1}, {"german": "kochen", "french": "bouillir; cuisiner", "type": "V", "chapter": 1}, {"german": "kommen (kam, ist gekommen)", "french": "venir", "type": "V", "chapter": 1}, {"german": "konjugieren", "french": "conjuguer", "type": "V", "chapter": 1}, {"german": "korrigieren", "french": "corriger", "type": "V", "chapter": 1}, {"german": "krank", "french": "malade", "type": "A", "chapter": 1}, {"german": "Kranke, der; subst. Adj.", "french": "malade", "type": "sA", "chapter": 1}, {"german": "Krankenpfleger, der; -s, -", "french": "infirmier", "type": "S", "chapter": 1}, {"german": "Krankenschwester, die; -, -n", "french": "infirmière", "type": "S", "chapter": 1}, {"german": "Krankheit, die; -, -en", "french": "maladie", "type": "S", "chapter": 1}, {"german": "Kurs, der; -es, -e", "french": "cours", "type": "S", "chapter": 1}, {"german": "kurz", "french": "court", "type": "A", "chapter": 1}, {"german": "laut", "french": "fort (pour un bruit)", "type": "A", "chapter": 1}, {"german": "lehren + 2 Akk.", "french": "enseigner", "type": "V", "chapter": 1}, {"german": "Lehrer, der; -s, -  / Lehrerin, die; -, -nen", "french": "professeur/e (primaire et secondaire)", "type": "S", "chapter": 1}, {"german": "lesen (liest, las, hat gelesen)", "french": "lire", "type": "V", "chapter": 1}, {"german": "Leute, die Plur.", "french": "gens", "type": "S", "chapter": 1}, {"german": "machen", "french": "faire", "type": "V", "chapter": 1}, {"german": "Mal, das; -(e)s, -e", "french": "fois", "type": "S", "chapter": 1}, {"german": "malen", "french": "peindre", "type": "V", "chapter": 1}, {"german": "Maler, der; -s, - / Malerin, die; -, nen", "french": "peintre", "type": "S", "chapter": 1}, {"german": "man", "french": "on", "type": "KW", "chapter": 1}, {"german": "Mann, der; -(e)s, -¨er", "french": "homme", "type": "S", "chapter": 1}, {"german": "markieren", "french": "marquer, cocher", "type": "V", "chapter": 1}, {"german": "Master, der; -s, X", "french": "master", "type": "S", "chapter": 1}, {"german": "Mentor, der; -s, -en", "french": "mentor", "type": "S", "chapter": 1}, {"german": "Mobilfunknummer, die; -, -n", "french": "numéro de gsm", "type": "S", "chapter": 1}, {"german": "Name, der; -ns, -n", "french": "nom", "type": "S", "chapter": 1}, {"german": "nehmen (nimmt, nahm, hat genommen)", "french": "prendre", "type": "V", "chapter": 1}, {"german": "nein", "french": "non", "type": "KW", "chapter": 1}, {"german": "noch", "french": "encore", "type": "KW", "chapter": 1}, {"german": "noch einmal", "french": "encore (une fois)", "type": "KW", "chapter": 1}, {"german": "notieren", "french": "noter", "type": "V", "chapter": 1}, {"german": "Nummer, die; -, -n", "french": "numéro", "type": "S", "chapter": 1}, {"german": "(Telefon)nummer, die; -, -n", "french": "numéro de téléphone", "type": "S", "chapter": 1}, {"german": "oft", "french": "souvent", "type": "KW", "chapter": 1}, {"german": "Ort, der; -(e)s, -e", "french": "localité", "type": "S", "chapter": 1}, {"german": "Partner, der; -s, - / Partnerin, die; -, -nen", "french": "compagnon / compagne, partenaire", "type": "S", "chapter": 1}, {"german": "passen", "french": "aller, convenir", "type": "V", "chapter": 1}, {"german": "Person, die; -, -en", "french": "personne", "type": "S", "chapter": 1}, {"german": "Personal, das; -s, X", "french": "personnel", "type": "S", "chapter": 1}, {"german": "Personalreferent, der; -en, -en", "french": "gestionnaire, agent du personnel", "type": "S", "chapter": 1}, {"german": "Postleitzahl, die; -, -en", "french": "code postal", "type": "S", "chapter": 1}, {"german": "Praktikant, der; -en, -en / Praktikantin, die; -, -nen", "french": "stagiaire", "type": "S", "chapter": 1}, {"german": "Praktikum, das; -s, Praktika", "french": "stage", "type": "S", "chapter": 1}, {"german": "Psychologe, der; -n, -n", "french": "psychologue", "type": "S", "chapter": 1}, {"german": "raten (rät, riet, hat geraten)", "french": "deviner; conseiller à, donner un conseil à", "type": "V", "chapter": 1}, {"german": "Raum, der; -(e)s, -¨e", "french": "pièce, chambre", "type": "S", "chapter": 1}, {"german": "rechnen", "french": "calculer", "type": "V", "chapter": 1}, {"german": "Rechnung, die; -, -en", "french": "calcul", "type": "S", "chapter": 1}, {"german": "Rechnung, die; -, -en", "french": "facture", "type": "S", "chapter": 1}, {"german": "Rechtsanwalt, der; -s, -¨e / Rechtsanwältin, die; -, -nen", "french": "avocat/e", "type": "S", "chapter": 1}, {"german": "Rhythmus, der; -, Rhythmen", "french": "rythme", "type": "S", "chapter": 1}, {"german": "richtig", "french": "exact", "type": "A", "chapter": 1}, {"german": "Satz, der; -es, -¨e", "french": "phrase", "type": "S", "chapter": 1}, {"german": "schreiben (schrieb, hat geschrieben)", "french": "écrire", "type": "V", "chapter": 1}, {"german": "sein (ist, war, ist gewesen)", "french": "être", "type": "V", "chapter": 1}, {"german": "Seite, die; -, -n", "french": "page", "type": "S", "chapter": 1}, {"german": "Sekretär, der; -s, -e / Sekretärin, die; -, -nen", "french": "secrétaire", "type": "S", "chapter": 1}, {"german": "sich (Akk.) verabschieden (von + Dat.)", "french": "dire au revoir (à), prendre congé (de)", "type": "V", "chapter": 1}, {"german": "Smartphone, das; -s, -s", "french": "smartphone", "type": "S", "chapter": 1}, {"german": "sortieren", "french": "trier", "type": "V", "chapter": 1}, {"german": "Spiel, das; -(e)s, -e", "french": "jeu; match", "type": "S", "chapter": 1}, {"german": "spielen", "french": "jouer", "type": "V", "chapter": 1}, {"german": "Sprache, die; -, -n", "french": "langue, langage", "type": "S", "chapter": 1}, {"german": "sprechen (spricht, sprach, hat gesprochen) (+ Akk. oder mit + Dat.)", "french": "parler (à)", "type": "V", "chapter": 1}, {"german": "Staatsangehörigkeit, die; -, -en", "french": "nationalité", "type": "S", "chapter": 1}, {"german": "Stadt, die; -, -¨e", "french": "ville", "type": "S", "chapter": 1}, {"german": "Straße, die; -, -n", "french": "rue", "type": "S", "chapter": 1}, {"german": "Student, der; -en, -en / Studentin, die; -, -nen", "french": "étudiant/e", "type": "S", "chapter": 1}, {"german": "studieren", "french": "étudier, faire des études", "type": "V", "chapter": 1}, {"german": "Tabelle, die; -, -n", "french": "tableau", "type": "S", "chapter": 1}, {"german": "telefonieren mit + Dat.", "french": "téléphoner à", "type": "V", "chapter": 1}, {"german": "Tipp, der; -s, -s", "french": "tuyau", "type": "S", "chapter": 1}, {"german": "Titel, der; -s, -", "french": "titre", "type": "S", "chapter": 1}, {"german": "Universität, die; -, -en / Uni, die; -, -s", "french": "université / univ", "type": "S", "chapter": 1}, {"german": "Verabschiedung, die; -, -en", "french": "fait de se dire au revoir", "type": "S", "chapter": 1}, {"german": "Vergleich, der; -s, -e", "french": "comparaison", "type": "S", "chapter": 1}, {"german": "vergleichen (verglich, hat verglichen) (mit + Dat.)", "french": "comparer (à)", "type": "V", "chapter": 1}, {"german": "Vielen Dank!", "french": "Merci beaucoup!", "type": "Aus", "chapter": 1}, {"german": "Vorname, der; -ns, -n", "french": "prénom", "type": "S", "chapter": 1}, {"german": "vorstellen (trennbar)", "french": "présenter", "type": "V", "chapter": 1}, {"german": "Vorstellung, die; -, )en", "french": "présentation", "type": "S", "chapter": 1}, {"german": "wer?", "french": "qui?", "type": "KW", "chapter": 1}, {"german": "wie?", "french": "comment?", "type": "KW", "chapter": 1}, {"german": "Willkommen!", "french": "Bienvenue!", "type": "Aus", "chapter": 1}, {"german": "Wirtschaftsingenieurwesen, das; -s, X", "french": "études d'ingénieur de gestion", "type": "S", "chapter": 1}, {"german": "woher?", "french": "d'où?", "type": "KW", "chapter": 1}, {"german": "Wort, das; -es, -¨er/-e", "french": "mot", "type": "S", "chapter": 1}, {"german": "Zahl, die; -, -en", "french": "nombre", "type": "S", "chapter": 1}, {"german": "zählen", "french": "compter", "type": "V", "chapter": 1}, {"german": "zeichnen", "french": "dessiner", "type": "V", "chapter": 1}, {"german": "Zeichnung, die; -, -en", "french": "dessin", "type": "S", "chapter": 1}, {"german": "zu zweit", "french": "à deux", "type": "Aus", "chapter": 1}, {"german": "zuordnen (sép.)", "french": "attribuer, classer", "type": "V", "chapter": 1}, {"german": "Europäische Union, die", "french": "Union Européenne", "type": "S", "chapter": 1}, {"german": "Belgien (Neutrum) / belgisch", "french": "Belgique / belge", "type": "S / A", "chapter": 1}, {"german": "Belgier, der; -s, - / Belgierin, die; -, -nen", "french": "Belge", "type": "S", "chapter": 1}, {"german": "Ich bin Belgier/in", "french": "Je suis belge", "type": "Aus", "chapter": 1}, {"german": "Flandern / flämisch", "french": "Flandre / flamand", "type": "S / A", "chapter": 1}, {"german": "Flame, der; -n, -n / Flämin, die; -, -nen", "french": "Flamand/e", "type": "S", "chapter": 1}, {"german": "Wallonien = Wallonie, die / wallonisch", "french": "Wallonie / wallon", "type": "S / A", "chapter": 1}, {"german": "Wallone; der; -n, -n / Wallonin, die; -, -nen", "french": "Wallon/e", "type": "S", "chapter": 1}, {"german": "Bulgarien / bulgarisch", "french": "Bulgarie / bulgare", "type": "S / A", "chapter": 1}, {"german": "Bulgare, der; -n, -n / Bulgarin, die; -, -nen", "french": "Bulgare", "type": "S", "chapter": 1}, {"german": "Dänemark / dänisch", "french": "Danemark / danois", "type": "S / A", "chapter": 1}, {"german": "Däne, der; -n, -n / Dänin, die; -, -nen", "french": "Danois/e", "type": "S", "chapter": 1}, {"german": "Deutschland / deutsch", "french": "Allemagne / allemand", "type": "S / A", "chapter": 1}, {"german": "Deutsche, der (subst. Adj.) / Deutsche, die (subst. Adj.)", "french": "Allemand/e", "type": "sA", "chapter": 1}, {"german": "Estland / estnisch", "french": "Estonie / estonien", "type": "S / A", "chapter": 1}, {"german": "Este, der; -n, -n / Estin, die; -, -nen", "french": "Estonien/ne", "type": "S", "chapter": 1}, {"german": "Finnland / finnisch", "french": "Finlande / finlandais", "type": "S / A", "chapter": 1}, {"german": "Finne, der; -n, -n / Finnin, die; -, -nen", "french": "Finlandais/e", "type": "S", "chapter": 1}, {"german": "Frankreich / französisch", "french": "France / français", "type": "S / A", "chapter": 1}, {"german": "Franzose, der; -n, -n / Französin, die; -, -nen", "french": "Français/e", "type": "S", "chapter": 1}, {"german": "Griechenland / griechisch", "french": "Grèce / grec", "type": "S / A", "chapter": 1}, {"german": "Grieche, der; -n, -n / Griechin, die; -, -nen", "french": "Grec/que", "type": "S", "chapter": 1}, {"german": "Großbritannien / britisch (offiziell noch nicht aus der EU!)", "french": "Grande-Bretagne / britannique", "type": "S / A", "chapter": 1}, {"german": "Brite, der; -n, -n / Britin, die; -, -nen", "french": "Britannique", "type": "S", "chapter": 1}, {"german": "Irland / irisch", "french": "Irlande / irlandais", "type": "S / A", "chapter": 1}, {"german": "Ire, der; -n, -n / Irin, die; -, -nen", "french": "Irlandais/e", "type": "S", "chapter": 1}, {"german": "Italien/ italienisch", "french": "Italie / italien", "type": "S / A", "chapter": 1}, {"german": "Italiener, der; -s, - / Italienerin, die; -, -nen", "french": "Italien/ne", "type": "S", "chapter": 1}, {"german": "Kroatien / kroatisch", "french": "Croatie / croate", "type": "S / A", "chapter": 1}, {"german": "Kroate, der; -n, -n / Kroatin, die; -, -nen", "french": "Croate", "type": "S", "chapter": 1}, {"german": "Lettland / lettisch", "french": "Lettonie / letton", "type": "S / A", "chapter": 1}, {"german": "Lette, der; -n, -n / Lettin, die; -, -nen", "french": "Letton/ne", "type": "S", "chapter": 1}, {"german": "Litauen / litauisch", "french": "Lithuanie / lithuanien", "type": "S / A", "chapter": 1}, {"german": "Litauer, der; -s, - / Litauerin, die; -, -nen", "french": "Lithuanien/ne", "type": "S", "chapter": 1}, {"german": "Luxemburg / luxemburgisch", "french": "Luxembourg / luxembourgeois", "type": "S / A", "chapter": 1}, {"german": "Luxemburger, der; -s, - / Luxemburgerin, die; -, -nen", "french": "Luxembourgeois/se", "type": "S", "chapter": 1}, {"german": "Malta / maltesisch", "french": "Malte / maltais", "type": "S / A", "chapter": 1}, {"german": "Malteser, der; -s, - / Malteserin, die; -, -nen", "french": "Maltais/e", "type": "S", "chapter": 1}, {"german": "Niederlande, die Plur. / niederländisch", "french": "Pays-Bas / néerlandais", "type": "S / A", "chapter": 1}, {"german": "Niederländer, der; -s, - / Niederländerin, die; -, -nen", "french": "Néerlandais/e", "type": "S", "chapter": 1}, {"german": "Österreich / österreichisch", "french": "Autriche / autrichien", "type": "S / A", "chapter": 1}, {"german": "Österreicher, der; -s, - / Österreicherin, die; -, -nen", "french": "Autrichien/ne", "type": "S", "chapter": 1}, {"german": "Polen / polnisch", "french": "Pologne / polonais", "type": "S / A", "chapter": 1}, {"german": "Pole, der; -n, -n / Polin, die; -, -nen", "french": "Polonais/e", "type": "S", "chapter": 1}, {"german": "Portugal / portugiesisch", "french": "Portugal / portugais", "type": "S / A", "chapter": 1}, {"german": "Portugiese, der; -n, -n / Portugiesin, die; -, -nen", "french": "Portugais/e", "type": "S", "chapter": 1}, {"german": "Rumänien / rumänisch", "french": "Roumanie / roumain", "type": "S / A", "chapter": 1}, {"german": "Rumäne, der; -n, -n / Rumänin, die; -, -nen", "french": "Roumain/e", "type": "S", "chapter": 1}, {"german": "Schweden / schwedisch", "french": "Suède / suédois", "type": "S / A", "chapter": 1}, {"german": "Schwede, der; -n, -n / Schwedin, die; -, -nen", "french": "Suédois/e", "type": "S", "chapter": 1}, {"german": "Slowakei, die / slowakisch", "french": "Slovaquie / slovaque", "type": "S / A", "chapter": 1}, {"german": "Slowake, der; -n, -n / Slowakin, die; -, -nen", "french": "Slovaque", "type": "S", "chapter": 1}, {"german": "Slowenien / slowenisch", "french": "Slovénie / slovène", "type": "S / A", "chapter": 1}, {"german": "Slowene, der; -n, -n / Slowenin, die; -, -nen", "french": "Slovène", "type": "S", "chapter": 1}, {"german": "Spanien / spanisch", "french": "Espagne / espagnol", "type": "S / A", "chapter": 1}, {"german": "Spanier, der; -s, - / Spanierin, die; -, -nen", "french": "Espagnol/e", "type": "S", "chapter": 1}, {"german": "Tschechien / tschechisch", "french": "Tchéquie / tchèque", "type": "S / A", "chapter": 1}, {"german": "Tscheche, der; -n, -n / Tschechin, die; -, -nen", "french": "Tchèque", "type": "S", "chapter": 1}, {"german": "Ungarn / ungarisch", "french": "Hongrie / hongrois", "type": "S / A", "chapter": 1}, {"german": "Ungar, der; -n, -n / Ungarin, die; -, -nen", "french": "Hongrois/e", "type": "S", "chapter": 1}, {"german": "Zypern / zyprisch", "french": "Chypre / chypriote", "type": "S / A", "chapter": 1}, {"german": "Zypr(i)er, der; -s, - / Zypr(i)erin, die; -, -nen", "french": "Chypriote", "type": "S", "chapter": 1}, {"german": "Brasilien / brasilianisch", "french": "Brésil / brésilien", "type": "S / A", "chapter": 1}, {"german": "Brasilianer, der; -s, - / Brasilianerin, die; -, -nen", "french": "Brésilien/ne", "type": "S", "chapter": 1}, {"german": "China / chinesisch", "french": "Chine / chinois", "type": "S / A", "chapter": 1}, {"german": "Chinese, der; -n, -n / Chinesin, die; -, -nen", "french": "Chinois/e", "type": "S", "chapter": 1}, {"german": "Indien / indisch", "french": "Inde / indien", "type": "S / A", "chapter": 1}, {"german": "Inder, der; -s, - / Inderin, die; -, -nen", "french": "Indien/ne", "type": "S", "chapter": 1}, {"german": "Japan / japanisch", "french": "Japon / japonais", "type": "S / A", "chapter": 1}, {"german": "Japaner, der; -s, - / Japanerin, die; -, -nen", "french": "Japonais/e", "type": "S", "chapter": 1}, {"german": "Kanada / kanadisch", "french": "Canada / canadien", "type": "S / A", "chapter": 1}, {"german": "Kanadier, der; -s, - / Kanadierin, die; -, -nen", "french": "Canadien/ne", "type": "S", "chapter": 1}, {"german": "Marokko / marokkanisch", "french": "Maroc / marocain", "type": "S / A", "chapter": 1}, {"german": "Marokkaner, der; -s, - / Marokkanerin, die; -, -nen", "french": "Marocain/e", "type": "S", "chapter": 1}, {"german": "Russland / russisch", "french": "Russie / russe", "type": "S / A", "chapter": 1}, {"german": "Russe, der; -n, -n / Russin, die; -, -nen", "french": "Russe", "type": "S", "chapter": 1}, {"german": "Schweiz, die / schweizerisch", "french": "Suisse / suisse", "type": "S / A", "chapter": 1}, {"german": "Schweizer, der; -s, - / Schweizerin, die; -, -nen", "french": "Suisse/sse", "type": "S", "chapter": 1}, {"german": "Syrien / syrisch", "french": "Syrie / syrien", "type": "S / A", "chapter": 1}, {"german": "Syrier, der; -s, - / Syrierin, die; -, -nen", "french": "Syrien/ne", "type": "S", "chapter": 1}, {"german": "Türkei, die / türkisch", "french": "Turquie / turc", "type": "S / A", "chapter": 1}, {"german": "Türke, der; -n, -n; Türkin, die; -, -nen", "french": "Turc / Turque", "type": "S", "chapter": 1}, {"german": "Vereinigten Staaten, die Plur = USA, die Plur. / (US-)amerikanisch", "french": "Etats-Unis d'Amérique / américain", "type": "S / A", "chapter": 1}, {"german": "(US-)Amerikaner; -s, -, der / (US-)Amerikanerin, die; -, -nen", "french": "Américain/e, \"Etats-Unien/e\"", "type": "S", "chapter": 1}, {"german": "Kontinent, der; -s, -e", "french": "continent", "type": "S", "chapter": 1}, {"german": "Afrika / afrikanisch", "french": "Afrique / africain", "type": "S / A", "chapter": 1}, {"german": "Afrikaner, der; -s, - / Afrikanerin, die; -, -nen", "french": "Africain/e", "type": "S", "chapter": 1}, {"german": "Amerika / amerikanisch", "french": "Amérique / américain", "type": "S / A", "chapter": 1}, {"german": "Amerikaner, der; -s, - / Amerikanerin, die; -, -nen", "french": "Américain/e", "type": "S", "chapter": 1}, {"german": "Asien / asiatisch", "french": "Asie / asiatique", "type": "S / A", "chapter": 1}, {"german": "Asiat, der; -en, -en / Asiatin, die; -, -nen", "french": "Asiatique", "type": "S", "chapter": 1}, {"german": "Europa / europäisch", "french": "Europe / européen", "type": "S / A", "chapter": 1}, {"german": "Europäer, der; -s, - / Europäerin, die; -, -nen", "french": "Européen/ne", "type": "S", "chapter": 1}, {"german": "Ozeanien", "french": "Océanie", "type": "S", "chapter": 1}, {"german": "Abteilung, die; -, -en", "french": "département, service", "type": "S", "chapter": 2}, {"german": "acht", "french": "8", "type": "KW", "chapter": 2}, {"german": "achtzehn", "french": "18", "type": "KW", "chapter": 2}, {"german": "achtzig", "french": "80", "type": "KW", "chapter": 2}, {"german": "alle", "french": "tous les", "type": "KW", "chapter": 2}, {"german": "Analyse, die; -, -n", "french": "analyse", "type": "S", "chapter": 2}, {"german": "ander", "french": "autre", "type": "A", "chapter": 2}, {"german": "anderthalb + Plur.", "french": "un et demi", "type": "KW", "chapter": 2}, {"german": "Arbeit, die; -, -en", "french": "travail", "type": "S", "chapter": 2}, {"german": "arbeiten", "french": "travailler", "type": "V", "chapter": 2}, {"german": "Assistent, der; -en, -en; Assistentin, die; -, -nen", "french": "assistant/e", "type": "S", "chapter": 2}, {"german": "Atmosphäre, die; -, -n", "french": "atmosphère, ambiance", "type": "S", "chapter": 2}, {"german": "auch", "french": "aussi", "type": "KW", "chapter": 2}, {"german": "Auf Wiedersehen!", "french": "Au revoir!", "type": "Aus", "chapter": 2}, {"german": "Ausland, das; -s, X", "french": "étranger (autres pays)", "type": "S", "chapter": 2}, {"german": "Ausländer, der; -s, - / Ausländerin, die;  -, -nen", "french": "étranger / étrangère, personne étrangère", "type": "S", "chapter": 2}, {"german": "ausländisch", "french": "étranger", "type": "A", "chapter": 2}, {"german": "bei + Dativ", "french": "chez (+ personne ou entreprise; quand on y est)", "type": "KW", "chapter": 2}, {"german": "Beispiel, das; -s, -e", "french": "exemple", "type": "S", "chapter": 2}, {"german": "bis bald", "french": "à bientôt!", "type": "Aus", "chapter": 2}, {"german": "bis morgen", "french": "à demain!", "type": "Aus", "chapter": 2}, {"german": "Chef, der; -s, -s / Chefin, die; -, -nen", "french": "patron/ne", "type": "S", "chapter": 2}, {"german": "dort", "french": "là-bas (statique)", "type": "KW", "chapter": 2}, {"german": "drei", "french": "3", "type": "KW", "chapter": 2}, {"german": "dreißig", "french": "30", "type": "KW", "chapter": 2}, {"german": "dreizehn", "french": "13", "type": "KW", "chapter": 2}, {"german": "eineinhalb + Plur.", "french": "un et demi", "type": "KW", "chapter": 2}, {"german": "eins", "french": "1", "type": "KW", "chapter": 2}, {"german": "eins Komma sieben Millionen", "french": "1,7 million", "type": "KW", "chapter": 2}, {"german": "einundzwanzig", "french": "21", "type": "KW", "chapter": 2}, {"german": "elf", "french": "11", "type": "KW", "chapter": 2}, {"german": "eng", "french": "étroit", "type": "A", "chapter": 2}, {"german": "exakt", "french": "exact, précis", "type": "A", "chapter": 2}, {"german": "Feier, die; -, -n", "french": "fête", "type": "S", "chapter": 2}, {"german": "Finanz, die; -, -en", "french": "finance", "type": "S", "chapter": 2}, {"german": "Finanzabteilung, die; -, -en", "french": "service financier", "type": "S", "chapter": 2}, {"german": "finanziell", "french": "financier", "type": "A", "chapter": 2}, {"german": "finanzieren", "french": "financer", "type": "V", "chapter": 2}, {"german": "Finanzmanager, der; -s, -", "french": "manager financier", "type": "S", "chapter": 2}, {"german": "Fragebogen, der; -s, -bogen ou -bögen", "french": "questionnaire", "type": "S", "chapter": 2}, {"german": "freuen", "french": "réjouir", "type": "V", "chapter": 2}, {"german": "Freut mich (auch).", "french": "Enchanté(e)!", "type": "Aus", "chapter": 2}, {"german": "fünf", "french": "5", "type": "KW", "chapter": 2}, {"german": "fünfzehn", "french": "15", "type": "KW", "chapter": 2}, {"german": "fünfzig", "french": "50", "type": "KW", "chapter": 2}, {"german": "ganz", "french": "tout, entier", "type": "A", "chapter": 2}, {"german": "Ganz langsam, bitte!", "french": "Très lentement, svp!", "type": "Aus", "chapter": 2}, {"german": "gern(e)", "french": "volontiers", "type": "KW", "chapter": 2}, {"german": "Geschäftsführer, der; -s, - / Geschäftsführerin, die; -, -nen", "french": "gérant/e", "type": "S", "chapter": 2}, {"german": "Geschäftsführung, die; -, -en", "french": "direction de l'entreprise", "type": "S", "chapter": 2}, {"german": "glauben + Dat.", "french": "croire qqn", "type": "V", "chapter": 2}, {"german": "glücklich", "french": "heureux", "type": "A", "chapter": 2}, {"german": "Grafik, die; -, -en", "french": "graphique", "type": "S", "chapter": 2}, {"german": "Grüße an Fred!", "french": "Bonjour à Fred!", "type": "Aus", "chapter": 2}, {"german": "gut", "french": "bon", "type": "A", "chapter": 2}, {"german": "Handynummer, die; -, -n", "french": "numéro de gsm", "type": "S", "chapter": 2}, {"german": "helfen (hilft, half, hat geholfen) + Dat.", "french": "aider", "type": "V", "chapter": 2}, {"german": "hundert", "french": "100", "type": "KW", "chapter": 2}, {"german": "in + Akk. oder Dativ", "french": "dans, en, à", "type": "KW", "chapter": 2}, {"german": "international", "french": "international", "type": "A", "chapter": 2}, {"german": "IT-Abteilung, die; -, -en", "french": "service informatique", "type": "S", "chapter": 2}, {"german": "Jahr, das; -es, -e", "french": "an, année", "type": "S", "chapter": 2}, {"german": "jetzt", "french": "maintenant", "type": "KW", "chapter": 2}, {"german": "Kaffeeküche, die; -, -n", "french": "coin café, salle de pause", "type": "S", "chapter": 2}, {"german": "Kaufmann, der; -s, -leute", "french": "commercial, commerçant", "type": "S", "chapter": 2}, {"german": "Kind, das; -es, -er", "french": "enfant", "type": "S", "chapter": 2}, {"german": "klopfen", "french": "frapper (p. ex. à la porte), tapoter", "type": "V", "chapter": 2}, {"german": "Kollege, der; -en, -en / Kollegin, die; -, -nen", "french": "collègue", "type": "S", "chapter": 2}, {"german": "Küche, die; -, -n", "french": "cuisine", "type": "S", "chapter": 2}, {"german": "lang", "french": "long", "type": "A", "chapter": 2}, {"german": "langsam", "french": "lent", "type": "A", "chapter": 2}, {"german": "leben", "french": "vivre", "type": "V", "chapter": 2}, {"german": "Leben, das; -s, X", "french": "vie", "type": "S", "chapter": 2}, {"german": "leider", "french": "malheureusement", "type": "KW", "chapter": 2}, {"german": "Leiter, der; -s, - / Leiterin, die; -, -nen", "french": "chef", "type": "S", "chapter": 2}, {"german": "Leitung, die; -, -en", "french": "direction", "type": "S", "chapter": 2}, {"german": "lernen", "french": "apprendre, étudier", "type": "V", "chapter": 2}, {"german": "lieb", "french": "cher (qu'on aime bien)", "type": "A", "chapter": 2}, {"german": "Manager, der; -s, -", "french": "manager", "type": "S", "chapter": 2}, {"german": "männlich", "french": "masculin", "type": "A", "chapter": 2}, {"german": "Marketing, das; -s, X", "french": "marketing", "type": "S", "chapter": 2}, {"german": "Marketingabteilung, die; -, -en", "french": "service marketing", "type": "S", "chapter": 2}, {"german": "Marketingassistent, der; -en, -en", "french": "assistant marketing", "type": "S", "chapter": 2}, {"german": "Marketingleiter, der; -s, -", "french": "directeur marketing", "type": "S", "chapter": 2}, {"german": "Markt, der; -es, -¨e", "french": "marché", "type": "S", "chapter": 2}, {"german": "Marktanalyse, die; -, -n", "french": "analyse de marché", "type": "S", "chapter": 2}, {"german": "Marktstrategie, die; -, -n", "french": "stratégie de marché", "type": "S", "chapter": 2}, {"german": "Mensch, der; -en, -en", "french": "être humain", "type": "S", "chapter": 2}, {"german": "Milliarde, die; -, -n", "french": "milliard", "type": "KW", "chapter": 2}, {"german": "Million, die; -, -n", "french": "million", "type": "KW", "chapter": 2}, {"german": "Mitarbeiter, der; -s, - / Mitarbeiterin, die; -, -nen", "french": "membre du personnel, collaborateur/ collaboratrice", "type": "S", "chapter": 2}, {"german": "Mittel, das; -s, -", "french": "moyen", "type": "S", "chapter": 2}, {"german": "Moment, der; -s, -e", "french": "moment", "type": "S", "chapter": 2}, {"german": "nach + ville ou pays", "french": "à, en (quand on y va)", "type": "KW", "chapter": 2}, {"german": "nett", "french": "aimable, gentil", "type": "A", "chapter": 2}, {"german": "neu", "french": "nouveau", "type": "A", "chapter": 2}, {"german": "Neuigkeit, die; -, -en", "french": "fait nouveau, nouveauté", "type": "S", "chapter": 2}, {"german": "neun", "french": "9", "type": "KW", "chapter": 2}, {"german": "neunhundertneunundneunzigtausendneunhundertneunundneunzig", "french": "999999", "type": "KW", "chapter": 2}, {"german": "neunzehn", "french": "19", "type": "KW", "chapter": 2}, {"german": "neunzig", "french": "90", "type": "KW", "chapter": 2}, {"german": "Online-Marketing, das; -s, X", "french": "marketing en ligne, digital", "type": "S", "chapter": 2}, {"german": "Pause, die; -, -n", "french": "pause", "type": "S", "chapter": 2}, {"german": "perfekt", "french": "parfait", "type": "A", "chapter": 2}, {"german": "Personalbüro, das; -s, -s", "french": "bureau du personnel", "type": "S", "chapter": 2}, {"german": "Personalchef, der; -s, -s", "french": "chef du personnel", "type": "S", "chapter": 2}, {"german": "Personalfragebogen, der; -s, -bogen ou -bögen", "french": "fiche signalétique (service du personnel)", "type": "S", "chapter": 2}, {"german": "prima (nicht dekliniert)", "french": "super", "type": "A", "chapter": 2}, {"german": "Prozent, das; -(e)s, -e (kein Plural nach einer Zahl)", "french": "pour cent", "type": "S", "chapter": 2}, {"german": "Redemittel, das; -s, -", "french": "moyen d'expression", "type": "S", "chapter": 2}, {"german": "reden", "french": "parler", "type": "V", "chapter": 2}, {"german": "sagen", "french": "dire", "type": "V", "chapter": 2}, {"german": "schlecht", "french": "mauvais", "type": "A", "chapter": 2}, {"german": "schnell", "french": "rapide", "type": "A", "chapter": 2}, {"german": "schon", "french": "déjà", "type": "KW", "chapter": 2}, {"german": "schön", "french": "beau", "type": "A", "chapter": 2}, {"german": "sechs", "french": "6", "type": "KW", "chapter": 2}, {"german": "sechzehn", "french": "16", "type": "KW", "chapter": 2}, {"german": "sechzig", "french": "60", "type": "KW", "chapter": 2}, {"german": "sehr", "french": "très", "type": "KW", "chapter": 2}, {"german": "sieben", "french": "7", "type": "KW", "chapter": 2}, {"german": "siebzehn", "french": "17", "type": "KW", "chapter": 2}, {"german": "siebzig", "french": "70", "type": "KW", "chapter": 2}, {"german": "Situation, die; -, -en", "french": "situation", "type": "S", "chapter": 2}, {"german": "so", "french": "ainsi, si, tellement", "type": "KW", "chapter": 2}, {"german": "Sprecher, der; -s, -", "french": "orateur", "type": "S", "chapter": 2}, {"german": "Statistik, die; -, -en", "french": "statistique", "type": "S", "chapter": 2}, {"german": "Strategie, die; -, -n", "french": "stratégie", "type": "S", "chapter": 2}, {"german": "super", "french": "super", "type": "A", "chapter": 2}, {"german": "tausend", "french": "1000", "type": "KW", "chapter": 2}, {"german": "Team, das; -s, -s", "french": "équipe, team", "type": "S", "chapter": 2}, {"german": "Teamleiter, der; -s, -", "french": "chef d'équipe", "type": "S", "chapter": 2}, {"german": "Thema, das; -s, Themen", "french": "sujet", "type": "S", "chapter": 2}, {"german": "toll", "french": "super, extra", "type": "A", "chapter": 2}, {"german": "Tschüss / tschau", "french": "Salut! Bye!", "type": "Aus", "chapter": 2}, {"german": "viel", "french": "beaucoup", "type": "KW", "chapter": 2}, {"german": "viele", "french": "beaucoup de", "type": "KW", "chapter": 2}, {"german": "vier", "french": "4", "type": "KW", "chapter": 2}, {"german": "vierzehn", "french": "14", "type": "KW", "chapter": 2}, {"german": "vierzig", "french": "40", "type": "KW", "chapter": 2}, {"german": "Vorwahl, die; -, -en", "french": "préfixe, indicatif", "type": "S", "chapter": 2}, {"german": "warum?", "french": "pourquoi?", "type": "KW", "chapter": 2}, {"german": "was?", "french": "que? quoi?", "type": "KW", "chapter": 2}, {"german": "weiblich", "french": "féminin", "type": "A", "chapter": 2}, {"german": "weltweit", "french": "mondial, à l'échelle mondiale", "type": "A", "chapter": 2}, {"german": "Wie geht es Ihnen / dir? - Es geht mir gut. Und Ihnen / dir?", "french": "Comment allez-vous / vas-tu? - Je vais bien. Et vous / toi?", "type": "Aus", "chapter": 2}, {"german": "wieviel?", "french": "combien?", "type": "KW", "chapter": 2}, {"german": "wirklich", "french": "vraiment, réellement", "type": "KW", "chapter": 2}, {"german": "wo?", "french": "où (statique)?", "type": "KW", "chapter": 2}, {"german": "wohnen", "french": "habiter", "type": "V", "chapter": 2}, {"german": "Wohnort, der; -(e)s, -e", "french": "domicile (lieu où on habite)", "type": "S", "chapter": 2}, {"german": "zehn", "french": "10", "type": "KW", "chapter": 2}, {"german": "zum Beispiel", "french": "par exemple", "type": "Aus", "chapter": 2}, {"german": "zum Glück", "french": "heureusement", "type": "KW", "chapter": 2}, {"german": "zusammen", "french": "ensemble", "type": "KW", "chapter": 2}, {"german": "zwanzig", "french": "20", "type": "KW", "chapter": 2}, {"german": "zwei", "french": "2", "type": "KW", "chapter": 2}, {"german": "zweieinhalb", "french": "deux et demi", "type": "KW", "chapter": 2}, {"german": "zweihundert", "french": "200", "type": "KW", "chapter": 2}, {"german": "zwölf", "french": "12", "type": "KW", "chapter": 2}, {"german": "Achtung!", "french": "Attention!", "type": "Aus", "chapter": 5}, {"german": "Agent, der; -en, -en", "french": "agent", "type": "S", "chapter": 5}, {"german": "Anhang, der; -s, -¨e", "french": "pièce jointe (mail)", "type": "S", "chapter": 5}, {"german": "Anlage, die; -, -n", "french": "installation (technique)", "type": "S", "chapter": 5}, {"german": "Arbeitskleidung, die; -, -en", "french": "vêtements de travail", "type": "S", "chapter": 5}, {"german": "Außendienst, der; -s, -e", "french": "service extérieur", "type": "S", "chapter": 5}, {"german": "berühren", "french": "toucher", "type": "V", "chapter": 5}, {"german": "besichtigen", "french": "visiter", "type": "V", "chapter": 5}, {"german": "Besichtigung, die; -, -en", "french": "visite (d'un lieu)", "type": "S", "chapter": 5}, {"german": "besonders", "french": "particulièrement", "type": "KW", "chapter": 5}, {"german": "Buchhaltung, die; -, -en", "french": "comptabilité", "type": "S", "chapter": 5}, {"german": "Callcenter-Agent, der; -en, -en", "french": "agent d'un call-center", "type": "S", "chapter": 5}, {"german": "chatten", "french": "chatter", "type": "V", "chapter": 5}, {"german": "dabei sein (ist, war, ist gewesen)", "french": "être présent, être de la partie", "type": "V", "chapter": 5}, {"german": "Das ist erlaubt.", "french": "C'est permis.", "type": "Aus", "chapter": 5}, {"german": "Das ist nicht erlaubt.", "french": "Ce n'est pas permis.", "type": "Aus", "chapter": 5}, {"german": "Das ist nicht nötig.", "french": "Ce n'est pas nécessaire.", "type": "Aus", "chapter": 5}, {"german": "Das ist nötig.", "french": "C'est nécessaire.", "type": "Aus", "chapter": 5}, {"german": "Das ist verboten.", "french": "C'est défendu, interdit.", "type": "Aus", "chapter": 5}, {"german": "Dienst, der; -es, -e", "french": "service", "type": "S", "chapter": 5}, {"german": "Dienstreise, die; -, -n", "french": "voyage d'affaires, professionnel", "type": "S", "chapter": 5}, {"german": "doppelt", "french": "double", "type": "A", "chapter": 5}, {"german": "dürfen (darf, durfte, hat gedurft)", "french": "pouvoir = avoir la permission", "type": "V", "chapter": 5}, {"german": "Einkauf, der; -s, -¨e", "french": "achat", "type": "S", "chapter": 5}, {"german": "Entschuldigung, darf ich hier…", "french": "Pardon, puis-je … ici?", "type": "Aus", "chapter": 5}, {"german": "Entschuldigung, muss ich hier…", "french": "Pardon, dois-je … ici?", "type": "Aus", "chapter": 5}, {"german": "Entwicklung, die; -, -en", "french": "évolution", "type": "S", "chapter": 5}, {"german": "Fachkaufmann, der; -s, -leute", "french": "diplômé en commerce", "type": "S", "chapter": 5}, {"german": "Fertigung, die; -, -en", "french": "production, fabrication", "type": "S", "chapter": 5}, {"german": "Film, der; -(e)s, -e", "french": "film", "type": "S", "chapter": 5}, {"german": "filmen", "french": "filmer", "type": "V", "chapter": 5}, {"german": "Fortbildung, die; -, -en", "french": "formation continue", "type": "S", "chapter": 5}, {"german": "fotografieren", "french": "photographier", "type": "V", "chapter": 5}, {"german": "freundlich", "french": "aimable", "type": "A", "chapter": 5}, {"german": "früh", "french": "tôt", "type": "KW", "chapter": 5}, {"german": "Frühstück, das; -s, X", "french": "petit déjeuner", "type": "S", "chapter": 5}, {"german": "Frühstückspause, die; -, -n", "french": "pause petit-déjeuner", "type": "S", "chapter": 5}, {"german": "genau", "french": "exact, précis", "type": "A", "chapter": 5}, {"german": "Gruppe, die; -, -n", "french": "groupe", "type": "S", "chapter": 5}, {"german": "Gruß / Grüße", "french": "Bien à toi (mail)", "type": "Aus", "chapter": 5}, {"german": "Mit freundlichen Grüßen", "french": "Bien à vous (mail)", "type": "Aus", "chapter": 5}, {"german": "Halle, die; -, -n", "french": "hall", "type": "S", "chapter": 5}, {"german": "heiß", "french": "chaud, très chaud", "type": "A", "chapter": 5}, {"german": "Helm, der; -s, -e", "french": "casque", "type": "S", "chapter": 5}, {"german": "Herein! = Kommen Sie herein!", "french": "Entrez!", "type": "Aus", "chapter": 5}, {"german": "höflich", "french": "poli", "type": "A", "chapter": 5}, {"german": "unhöflich", "french": "impoli", "type": "A", "chapter": 5}, {"german": "ich möchte…", "french": "je voudrais, j'aimerais bien", "type": "V", "chapter": 5}, {"german": "in zwei Wochen", "french": "dans deux semaines", "type": "Aus", "chapter": 5}, {"german": "Industriemechaniker, der; -s, -", "french": "mécanicien industriel", "type": "S", "chapter": 5}, {"german": "Innendienst, der; -s, -e", "french": "service intérieur", "type": "S", "chapter": 5}, {"german": "interessant", "french": "intéressant", "type": "A", "chapter": 5}, {"german": "Interview, das; -s, -s", "french": "interview", "type": "S", "chapter": 5}, {"german": "interviewen", "french": "interviewer", "type": "V", "chapter": 5}, {"german": "kalt", "french": "froid", "type": "A", "chapter": 5}, {"german": "Kantine, die; -, -n", "french": "cantine", "type": "S", "chapter": 5}, {"german": "kontrollieren", "french": "contrôler", "type": "V", "chapter": 5}, {"german": "Konzept, das; - s, -e", "french": "concept", "type": "S", "chapter": 5}, {"german": "Lager, das; -s, -", "french": "stock, dépôt", "type": "S", "chapter": 5}, {"german": "langweilig", "french": "ennuyeux", "type": "S", "chapter": 5}, {"german": "leise", "french": "bas (pour un bruit)", "type": "A", "chapter": 5}, {"german": "Logistik, die; -, X", "french": "logistique", "type": "S", "chapter": 5}, {"german": "Maschine, die; -, -n", "french": "machine", "type": "S", "chapter": 5}, {"german": "Material, das; -s, Materialien", "french": "matériau, matière", "type": "S", "chapter": 5}, {"german": "Mechaniker, der; -s, -", "french": "mécanicien", "type": "S", "chapter": 5}, {"german": "Mittagspause, die; -, -n", "french": "pause de midi", "type": "S", "chapter": 5}, {"german": "möglich", "french": "possible", "type": "A", "chapter": 5}, {"german": "Ist das möglich?", "french": "Est-ce que c'est possible?", "type": "Aus", "chapter": 5}, {"german": "Das ist möglich.", "french": "C'est possible.", "type": "Aus", "chapter": 5}, {"german": "Das ist nicht möglich.", "french": "Ce n'est pas possible.", "type": "Aus", "chapter": 5}, {"german": "im Moment", "french": "pour le moment", "type": "Aus", "chapter": 5}, {"german": "Musik, die; -, X", "french": "musique", "type": "S", "chapter": 5}, {"german": "müssen (muss, müsste, hat gemusst)", "french": "devoir (circonstances)", "type": "V", "chapter": 5}, {"german": "nach Hause gehen (ging, ist gegangen)", "french": "rentrer chez soi, aller à la maison", "type": "V", "chapter": 5}, {"german": "nächst", "french": "prochain", "type": "A", "chapter": 5}, {"german": "nächste Woche", "french": "la semaine prochaine", "type": "Aus", "chapter": 5}, {"german": "natürlich", "french": "naturel(lement)", "type": "A", "chapter": 5}, {"german": "normal", "french": "normal", "type": "A", "chapter": 5}, {"german": "Organigramm, das; -s, -e", "french": "organigramme", "type": "S", "chapter": 5}, {"german": "Organisation, die; -, -en", "french": "organisation", "type": "S", "chapter": 5}, {"german": "Personalabteilung, die; -, -en", "french": "service du personnel", "type": "S", "chapter": 5}, {"german": "PR-Abteilung, die; -, -en", "french": "service des relations publiques", "type": "S", "chapter": 5}, {"german": "präsentieren", "french": "présenter (qqch)", "type": "V", "chapter": 5}, {"german": "Produktion, die; -, X", "french": "fabrication, production", "type": "S", "chapter": 5}, {"german": "rauchen", "french": "fumer", "type": "V", "chapter": 5}, {"german": "Rauchen, das; -s, X", "french": "tabagisme, fait de fumer", "type": "S", "chapter": 5}, {"german": "Raucher, der; -s, - / Raucherin, die; -, -nen", "french": "fumeur / fumeuse", "type": "S", "chapter": 5}, {"german": "Reise, die; -, -n", "french": "voyage", "type": "S", "chapter": 5}, {"german": "reisen", "french": "voyager", "type": "V", "chapter": 5}, {"german": "schicken", "french": "envoyer", "type": "V", "chapter": 5}, {"german": "schlafen (schläft, schlief, hat geschlafen)", "french": "dormir", "type": "V", "chapter": 5}, {"german": "schrecklich", "french": "terrible", "type": "A", "chapter": 5}, {"german": "sehen (sieht, sah, hat gesehen)", "french": "voir", "type": "V", "chapter": 5}, {"german": "Sehr geehrte Frau …", "french": "(Chère) Madame … (mail)", "type": "Aus", "chapter": 5}, {"german": "Sehr geehrter Herr …", "french": "(Cher) Monsieur … (mail)", "type": "Aus", "chapter": 5}, {"german": "sitzen (saβ, hat gesessen)", "french": "être assis", "type": "V", "chapter": 5}, {"german": "Software, die, -, -s", "french": "logiciel", "type": "S", "chapter": 5}, {"german": "spannend", "french": "passionnant", "type": "A", "chapter": 5}, {"german": "Spannung, die; -, -en", "french": "tension", "type": "S", "chapter": 5}, {"german": "Spaß, der; -es, X", "french": "plaisir", "type": "S", "chapter": 5}, {"german": "Symbol, das; -s, -e", "french": "symbole", "type": "S", "chapter": 5}, {"german": "total", "french": "totalement", "type": "KW", "chapter": 5}, {"german": "tragen (trägt, trug, hat getragen)", "french": "porter", "type": "V", "chapter": 5}, {"german": "trinken (trank, hat getrunken)", "french": "boire", "type": "V", "chapter": 5}, {"german": "Verabredung, die; -, -en", "french": "rendez-vous", "type": "S", "chapter": 5}, {"german": "vertreiben", "french": "commercialiser, distribuer", "type": "V", "chapter": 5}, {"german": "Vertrieb, der; -s, -e", "french": "distribution, vente", "type": "S", "chapter": 5}, {"german": "Verwaltung, die; -, -en", "french": "services administratifs, administration", "type": "S", "chapter": 5}, {"german": "Vorstellung, die; -, -en", "french": "présentation", "type": "S", "chapter": 5}, {"german": "Werbung, die; -, X", "french": "publicité", "type": "S", "chapter": 5}, {"german": "Werk, das; -(e)s, -e", "french": "usine", "type": "S", "chapter": 5}, {"german": "wollen (will, wollte, hat gewollt)", "french": "vouloir", "type": "V", "chapter": 5}, {"german": "Zigarette, die; -, -n", "french": "cigarette", "type": "S", "chapter": 5}, {"german": "zusammenbleiben (trennbar)", "french": "rester ensemble", "type": "V", "chapter": 5}]
+;
+
+// ── PERSISTENCE ──
+const SAVE_KEY = 'allemand1_mastery_v2';
+const STATS_KEY = 'allemand1_stats_v2';
+
+function saveProgress() {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(mastery));
+    localStorage.setItem(STATS_KEY, JSON.stringify({ correctTotal, wrongTotal, streak }));
+  } catch(e) {}
+}
+
+function loadProgress() {
+  try {
+    const m = localStorage.getItem(SAVE_KEY);
+    const s = localStorage.getItem(STATS_KEY);
+    if (m) mastery = JSON.parse(m);
+    if (s) {
+      const st = JSON.parse(s);
+      correctTotal = st.correctTotal || 0;
+      wrongTotal = st.wrongTotal || 0;
+      streak = st.streak || 0;
+    }
+  } catch(e) {}
+}
+
+// ── STATE ──
+const TYPE_LABELS = { S:'Nom', V:'Verbe', A:'Adjectif', KW:'Petit mot', Aus:'Expression', nan:'', '':'', undefined:'' };
+let mastery = {};
+let correctTotal = 0, wrongTotal = 0, streak = 0;
+let activeChapters = new Set([1,2,3,4,5]);
+let currentQ = null;
+let answered = false;
+let sortCol = 'german';
+let sortDir = 1; // 1 asc, -1 desc
+
+// ── SPACED REPETITION ──
+function getWeight(idx) {
+  const m = mastery[idx] || 0;
+  return m === 0 ? 10 : m === 1 ? 3 : 1;
+}
+
+function pickQuestion() {
+  const pool = VOCAB.filter(w => activeChapters.has(w.chapter));
+  if (!pool.length) return null;
+  const total = pool.reduce((acc, w) => acc + getWeight(VOCAB.indexOf(w)), 0);
+  let r = Math.random() * total;
+  for (const w of pool) {
+    r -= getWeight(VOCAB.indexOf(w));
+    if (r <= 0) return { word: w, idx: VOCAB.indexOf(w) };
+  }
+  const last = pool[pool.length - 1];
+  return { word: last, idx: VOCAB.indexOf(last) };
+}
+
+function getDistractors(correct, count = 3) {
+  const pool = VOCAB.filter(w => w !== correct && activeChapters.has(w.chapter));
+  return pool.sort(() => Math.random() - 0.5).slice(0, count);
+}
+
+function getDisplayGerman(word) {
+  return word.german.split(';')[0].trim();
+}
+
+// ── QUIZ ──
+function nextQuestion() {
+  answered = false;
+  document.getElementById('next-btn').style.display = 'none';
+  document.getElementById('feedback').textContent = '';
+  document.getElementById('feedback').className = 'feedback-row';
+
+  const q = pickQuestion();
+  if (!q) {
+    document.getElementById('q-word').textContent = 'Sélectionne au moins un chapitre !';
+    document.getElementById('choices-grid').innerHTML = '';
+    return;
+  }
+  currentQ = q;
+  const frToDe = Math.random() < 0.5;
+  currentQ.frToDe = frToDe;
+
+  document.getElementById('q-label').textContent = frToDe ? 'Traduire en allemand' : 'Traduire en français';
+  document.getElementById('q-word').textContent = frToDe ? q.word.french : getDisplayGerman(q.word);
+  document.getElementById('q-type').textContent = TYPE_LABELS[q.word.type] || q.word.type;
+  document.getElementById('q-chapter').textContent = `Chapitre ${q.word.chapter}`;
+
+  const distractors = getDistractors(q.word, 3);
+  const options = [q.word, ...distractors].sort(() => Math.random() - 0.5);
+
+  const grid = document.getElementById('choices-grid');
+  grid.innerHTML = '';
+  for (const opt of options) {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.textContent = frToDe ? getDisplayGerman(opt) : opt.french;
+    const correctAnswer = frToDe ? getDisplayGerman(q.word) : q.word.french;
+    btn.onclick = () => handleAnswer(btn, opt === q.word, correctAnswer);
+    grid.appendChild(btn);
+  }
+
+  updateStats();
+}
+
+function handleAnswer(btn, isCorrect, correctAnswer) {
+  if (answered) return;
+  answered = true;
+
+  document.querySelectorAll('.choice-btn').forEach(b => {
+    b.disabled = true;
+    if (b.textContent === correctAnswer) b.classList.add('correct');
+  });
+
+  const fb = document.getElementById('feedback');
+  if (isCorrect) {
+    btn.classList.add('correct');
+    correctTotal++;
+    streak++;
+    const prev = mastery[currentQ.idx] || 0;
+    mastery[currentQ.idx] = Math.min(prev + 1, 2);
+    fb.textContent = streak >= 3 ? `✓ Correct ! 🔥 Série de ${streak}` : '✓ Correct !';
+    fb.className = 'feedback-row correct-msg';
+  } else {
+    btn.classList.add('wrong');
+    wrongTotal++;
+    streak = 0;
+    mastery[currentQ.idx] = 0;
+    fb.textContent = `✗ La bonne réponse était : ${correctAnswer}`;
+    fb.className = 'feedback-row wrong-msg';
+  }
+
+  saveProgress();
+  document.getElementById('next-btn').style.display = 'block';
+  updateStats();
+  updateProgress();
+}
+
+function updateStats() {
+  document.getElementById('stat-correct').textContent = correctTotal;
+  document.getElementById('stat-wrong').textContent = wrongTotal;
+  document.getElementById('stat-streak').textContent = streak;
+  const mastered = Object.values(mastery).filter(v => v === 2).length;
+  document.getElementById('stat-mastered').textContent = mastered;
+}
+
+function updateProgress() {
+  const pool = VOCAB.filter(w => activeChapters.has(w.chapter));
+  const mastered = pool.filter(w => (mastery[VOCAB.indexOf(w)] || 0) === 2).length;
+  const pct = pool.length ? (mastered / pool.length * 100) : 0;
+  document.getElementById('progress-bar').style.width = pct + '%';
+}
+
+// ── CHAPTER FILTERS ──
+function buildFilters() {
+  const wrap = document.getElementById('chapter-filters');
+  const allBtn = document.createElement('button');
+  allBtn.className = 'filter-chip on';
+  allBtn.textContent = 'Tous';
+  allBtn.dataset.ch = 'all';
+  allBtn.onclick = () => toggleAll(allBtn);
+  wrap.appendChild(allBtn);
+
+  for (let c = 1; c <= 5; c++) {
+    const btn = document.createElement('button');
+    btn.className = 'filter-chip on';
+    btn.textContent = `Chap. ${c}`;
+    btn.dataset.ch = c;
+    btn.onclick = () => toggleChapter(btn, c);
+    wrap.appendChild(btn);
+  }
+}
+
+function toggleAll(btn) {
+  const chips = document.querySelectorAll('.filter-chip[data-ch]:not([data-ch="all"])');
+  const allOn = activeChapters.size === 5;
+  if (allOn) {
+    activeChapters.clear();
+    chips.forEach(b => b.classList.remove('on'));
+    btn.classList.remove('on');
+  } else {
+    [1,2,3,4,5].forEach(c => activeChapters.add(c));
+    chips.forEach(b => b.classList.add('on'));
+    btn.classList.add('on');
+  }
+  updateProgress();
+  nextQuestion();
+}
+
+function toggleChapter(btn, ch) {
+  if (activeChapters.has(ch)) { activeChapters.delete(ch); btn.classList.remove('on'); }
+  else { activeChapters.add(ch); btn.classList.add('on'); }
+  document.querySelector('.filter-chip[data-ch="all"]').classList.toggle('on', activeChapters.size === 5);
+  updateProgress();
+  nextQuestion();
+}
+
+// ── LIST VIEW ──
+const TYPE_ORDER = { S: 1, V: 2, A: 3, KW: 4, Aus: 5 };
+
+function sortList(col) {
+  if (sortCol === col) { sortDir *= -1; }
+  else { sortCol = col; sortDir = 1; }
+  // update arrows
+  ['german','french','type','chapter','mastery'].forEach(c => {
+    const el = document.getElementById('sort-' + c);
+    if (!el) return;
+    if (c === col) {
+      el.textContent = sortDir === 1 ? '↑' : '↓';
+      el.classList.add('active');
+    } else {
+      el.textContent = '↕';
+      el.classList.remove('active');
+    }
+  });
+  renderList();
+}
+
+function renderList() {
+  const search = document.getElementById('list-search').value.toLowerCase();
+  const chap = document.getElementById('list-chap').value;
+  const type = document.getElementById('list-type').value;
+  const masteryFilter = document.getElementById('list-mastery').value;
+
+  let filtered = VOCAB.filter(w => {
+    if (chap !== 'all' && w.chapter !== parseInt(chap)) return false;
+    if (type !== 'all' && w.type !== type) return false;
+    if (masteryFilter !== 'all' && (mastery[VOCAB.indexOf(w)] || 0) !== parseInt(masteryFilter)) return false;
+    if (search) return w.german.toLowerCase().includes(search) || w.french.toLowerCase().includes(search);
+    return true;
+  });
+
+  // Sort
+  filtered.sort((a, b) => {
+    let va, vb;
+    if (sortCol === 'german') { va = getDisplayGerman(a).toLowerCase(); vb = getDisplayGerman(b).toLowerCase(); }
+    else if (sortCol === 'french') { va = a.french.toLowerCase(); vb = b.french.toLowerCase(); }
+    else if (sortCol === 'type') { va = TYPE_ORDER[a.type] || 99; vb = TYPE_ORDER[b.type] || 99; return sortDir * (va - vb); }
+    else if (sortCol === 'chapter') { return sortDir * (a.chapter - b.chapter); }
+    else if (sortCol === 'mastery') {
+      va = mastery[VOCAB.indexOf(a)] || 0;
+      vb = mastery[VOCAB.indexOf(b)] || 0;
+      return sortDir * (va - vb);
+    }
+    if (va < vb) return -1 * sortDir;
+    if (va > vb) return 1 * sortDir;
+    return 0;
+  });
+
+  const masteryLabels = ['Nouveau', 'Vu', 'Maîtrisé'];
+  document.getElementById('list-count').textContent = `${filtered.length} mot${filtered.length !== 1 ? 's' : ''}`;
+
+  const tbody = document.getElementById('list-body');
+  tbody.innerHTML = '';
+
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:32px">Aucun résultat</td></tr>';
+    return;
+  }
+
+  const frag = document.createDocumentFragment();
+  for (const w of filtered) {
+    const idx = VOCAB.indexOf(w);
+    const m = mastery[idx] || 0;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="german-cell">${getDisplayGerman(w)}</td>
+      <td class="french-cell">${w.french}</td>
+      <td class="type-cell">${w.type || ''}</td>
+      <td class="chap-cell">${w.chapter}</td>
+      <td class="mastery-cell"><span class="mastery-dot mastery-${m}"></span>${masteryLabels[m]}</td>
+    `;
+    frag.appendChild(tr);
+  }
+  tbody.appendChild(frag);
+}
+
+// ── NAV ──
+function showView(name, btn) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'list') { sortList('german'); }
+}
+
+// ── INSTALL BANNER ──
+function showInstallBannerIfNeeded() {
+  const isIOS = /ipad|iphone|ipod/i.test(navigator.userAgent);
+  const isStandalone = window.navigator.standalone === true;
+  const dismissed = localStorage.getItem('install_dismissed');
+  if (isIOS && !isStandalone && !dismissed) {
+    document.getElementById('install-banner').style.display = 'block';
+    document.querySelector('.install-close').onclick = () => {
+      document.getElementById('install-banner').style.display = 'none';
+      localStorage.setItem('install_dismissed', '1');
+    };
+  }
+}
+
+// ── INIT ──
+loadProgress();
+buildFilters();
+updateStats();
+updateProgress();
+nextQuestion();
+showInstallBannerIfNeeded();
+</script>
+</body>
+</html>
